@@ -1,7 +1,7 @@
 // Оболочка кэшируется, данные всегда идут по сети — иначе можно увидеть
 // вчерашний список задач и решить, что всё сделано.
-const CACHE = 'runner-shell-v2';
-const SHELL = ['./', 'index.html', 'styles.css?v=2', 'app.js?v=2', 'manifest.webmanifest', 'icon-256.png'];
+const CACHE = 'runner-shell-v3';
+const SHELL = ['./', 'index.html', 'styles.css?v=3', 'app.js?v=3', 'manifest.webmanifest', 'icon-256.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));

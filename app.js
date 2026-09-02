@@ -5,20 +5,34 @@ const KEY_API = 'runner-api';
 
 // Приложение живёт на постоянном адресе GitHub Pages, а компьютер каждый раз
 // получает новый адрес туннеля — он публикуется в origin.json рядом с приложением.
-const ORIGIN_POINTER = 'origin.json';
+const ORIGIN_POINTER = 'https://raw.githubusercontent.com/pernebye/runner-mobile/main/origin.json';
 let apiBase = location.origin.includes('github.io') ? (localStorage.getItem(KEY_API) || '') : '';
 
-async function resolveApi() {
+// raw отдаётся через CDN и минут пять помнит старый адрес; когда связь потеряна,
+// спрашиваем напрямую у API GitHub, чтобы не ждать протухания кэша
+const ORIGIN_FRESH = 'https://api.github.com/repos/pernebye/runner-mobile/contents/origin.json';
+
+async function resolveApi(fresh) {
   if (!location.origin.includes('github.io')) return '';
-  try {
-    const res = await fetch(ORIGIN_POINTER + '?t=' + Date.now(), { cache: 'no-store' });
-    const data = await res.json();
-    if (data.origin) {
-      apiBase = data.origin.replace(/\/$/, '');
-      localStorage.setItem(KEY_API, apiBase);
+  const sources = fresh
+    ? [{ url: ORIGIN_FRESH, raw: true }, { url: ORIGIN_POINTER }]
+    : [{ url: ORIGIN_POINTER }];
+
+  for (const source of sources) {
+    try {
+      const res = await fetch(source.url + '?t=' + Date.now(), {
+        cache: 'no-store',
+        headers: source.raw ? { 'Accept': 'application/vnd.github.raw' } : {}
+      });
+      const data = await res.json();
+      if (data.origin) {
+        apiBase = data.origin.replace(/\/$/, '');
+        localStorage.setItem(KEY_API, apiBase);
+        return apiBase;
+      }
+    } catch {
+      // пробуем следующий источник
     }
-  } catch {
-    // остаётся последний известный адрес
   }
   return apiBase;
 }
@@ -155,7 +169,7 @@ async function load(silent) {
     } catch (first) {
       if (first.message === 'unauthorized') throw first;
       // компьютер мог перезагрузиться и получить новый адрес туннеля
-      await resolveApi();
+      await resolveApi(true);
       data = await api('/api/state');
     }
     Object.assign(state, {
