@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0c0c0e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Runner">
+<title>Runner</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-256.png">
+<link rel="icon" href="icon-256.png">
+<link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-title" id="screen-title">Проекты</div>
+  <button class="topbar-btn" id="btn-reload" title="Обновить">
+    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <path d="M20 11.5A8 8 0 1 1 17.3 6"/><path d="M20 4v5h-5"/>
+    </svg>
+  </button>
+</header>
+
+<main class="screens">
+  <!-- Проекты -->
+  <section class="screen active" data-screen="projects">
+    <div class="search-row">
+      <input type="search" id="project-search" placeholder="Поиск проекта" autocomplete="off">
+    </div>
+    <div class="chips" id="workspace-chips"></div>
+    <div class="list" id="projects-list"></div>
+  </section>
+
+  <!-- Задачи -->
+  <section class="screen" data-screen="tasks">
+    <div class="chips" id="task-chips">
+      <button class="chip active" data-scope="today">Сегодня<span>0</span></button>
+      <button class="chip" data-scope="week">Неделя<span>0</span></button>
+      <button class="chip" data-scope="all">Все<span>0</span></button>
+      <button class="chip" data-scope="events">Созвоны<span>0</span></button>
+    </div>
+    <div class="list" id="tasks-list"></div>
+    <button class="fab" id="btn-add">+</button>
+  </section>
+
+  <!-- Сессии -->
+  <section class="screen" data-screen="sessions">
+    <div class="list" id="sessions-list"></div>
+  </section>
+</main>
+
+<nav class="tabbar">
+  <button class="tab active" data-target="projects">
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3.5" y="4.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="4.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="14.5" width="7" height="5" rx="1.6"/><rect x="13.5" y="14.5" width="7" height="5" rx="1.6"/></svg>
+    <span>Проекты</span>
+  </button>
+  <button class="tab" data-target="tasks">
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5 6 9.5 9.5 6"/><path d="M4 16.5 6 18.5 9.5 15"/><path d="M12.5 7.5H20M12.5 16.5H20"/></svg>
+    <span>Задачи<i class="tab-badge" id="tab-badge" hidden></i></span>
+  </button>
+  <button class="tab" data-target="sessions">
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5 9 11l-4.5 4.5"/><path d="M11.5 17.5H19"/></svg>
+    <span>Сессии</span>
+  </button>
+</nav>
+
+<!-- Форма задачи -->
+<div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-handle"></div>
+  <div class="sheet-tabs">
+    <button class="sheet-tab active" data-kind="task">Задача</button>
+    <button class="sheet-tab" data-kind="event">Созвон</button>
+  </div>
+  <input type="text" id="new-title" placeholder="Что сделать" autocomplete="off">
+  <input type="text" id="new-due" placeholder="Когда — «завтра 15:00», «в пятницу»" autocomplete="off">
+  <div class="quick-dates" id="quick-dates">
+    <button data-due="сегодня">Сегодня</button>
+    <button data-due="завтра">Завтра</button>
+    <button data-due="завтра 10:00">Завтра утром</button>
+    <button data-due="в пятницу">В пятницу</button>
+    <button data-due="через неделю">Через неделю</button>
+  </div>
+  <select id="new-project"><option value="">Без проекта</option></select>
+  <label class="switch-row" id="priority-row">
+    <span>Важная</span>
+    <input type="checkbox" id="new-priority">
+  </label>
+  <button class="primary" id="btn-save">Создать</button>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="app.js?v=2"></script>
+</body>
+</html>

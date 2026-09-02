@@ -1,0 +1,16 @@
+{
+  "name": "Runner",
+  "short_name": "Runner",
+  "description": "Проекты, задачи и сессии Claude с телефона",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c0c0e",
+  "theme_color": "#0c0c0e",
+  "lang": "ru",
+  "icons": [
+    { "src": "icon-256.png", "sizes": "256x256", "type": "image/png", "purpose": "any" },
+    { "src": "icon-256.png", "sizes": "256x256", "type": "image/png", "purpose": "maskable" }
+  ]
+}
