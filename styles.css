@@ -885,3 +885,8 @@ textarea:focus { border-color: var(--accent); }
 .ptr.loading { transform: translateY(14px) !important; opacity: 1 !important; }
 .ptr [data-icon] { font-size: 18px; }
 .ptr.loading [data-icon] { animation: spin 0.8s linear infinite; }
+
+/* Этапы проекта */
+.cat-milestone { --cat: var(--accent); }
+.agenda-item.cat-milestone { background: transparent; border: 1px solid var(--accent); border-left-width: 4px; }
+.task-stage::before { content: '\25C6 '; font-size: 8px; color: var(--accent); }

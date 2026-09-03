@@ -443,6 +443,8 @@ function taskRow(task) {
   const meta = [];
   if (task.due) meta.push(`<span class="task-due">${humanDue(task.due)}</span>`);
   if (project) meta.push(`<span>${esc(project.name)}</span>`);
+  const stage = project && (project.milestones || []).find(s => s.id === task.milestoneId);
+  if (stage) meta.push(`<span class="task-stage">${esc(stage.title)}</span>`);
   return `
     <article class="task${isOverdue(task) ? ' overdue' : ''}${task.status === 'done' ? ' done' : ''}" data-id="${esc(task.id)}">
       <button class="check" data-act="done"></button>
@@ -475,7 +477,7 @@ function renderCounts() {
 
 // --- календарь ---
 
-const CAT_LABEL = { work: 'Работа', call: 'Созвон', personal: 'Личное', other: 'Другое', task: 'Задача' };
+const CAT_LABEL = { work: 'Работа', call: 'Созвон', personal: 'Личное', other: 'Другое', task: 'Задача', milestone: 'Этап проекта' };
 
 // событие или задача на дату в одной форме
 function itemsOn(key) {
@@ -489,6 +491,18 @@ function itemsOn(key) {
     if (!t.due || t.due.slice(0, 10) !== key) continue;
     out.push({ id: t.id, kind: 'task', raw: t, title: t.title, at: t.due, allDay: !t.due.includes('T'),
       minutes: 30, category: 'task', done: t.status === 'done', overdue: isOverdue(t) });
+  }
+  // вехи проектов: этапы и общий дедлайн, задаются в настройках проекта на компьютере
+  for (const p of state.projects) {
+    for (const stage of p.milestones || []) {
+      if (stage.due !== key) continue;
+      out.push({ id: `ms:${p.id}:${stage.id}`, kind: 'project', raw: p, title: `${p.name}: ${stage.title}`,
+        at: key, allDay: true, minutes: 0, category: 'milestone', done: !!stage.done });
+    }
+    if (p.deadline === key) {
+      out.push({ id: `dl:${p.id}`, kind: 'project', raw: p, title: `${p.name}: дедлайн проекта`,
+        at: key, allDay: true, minutes: 0, category: 'milestone', done: p.status === 'done' || p.status === 'archived' });
+    }
   }
   return out.sort((a, b) => (a.allDay === b.allDay ? a.at.localeCompare(b.at) : a.allDay ? -1 : 1));
 }
@@ -618,6 +632,7 @@ const sheet = {
     document.getElementById('f-duration').value = item?.durationMin && item.durationMin < 1440 ? item.durationMin : 60;
     document.getElementById('f-allday').checked = !!item?.allDay;
     document.getElementById('f-project').value = item?.projectId || '';
+    this.fillMilestones(item?.projectId || '', item?.milestoneId || '');
     document.getElementById('f-category').value = item?.category || 'work';
     document.getElementById('f-location').value = item?.location || '';
     document.getElementById('f-priority').checked = item?.priority === 'high';
@@ -639,6 +654,17 @@ const sheet = {
     this.el().hidden = true;
     document.getElementById('sheet-backdrop').hidden = true;
     state.sheet.item = null;
+  },
+
+  // этапы есть не у всех проектов — поле показываем только когда есть из чего выбрать
+  fillMilestones(projectId, selected) {
+    const stages = (state.projects.find(p => p.id === projectId)?.milestones) || [];
+    const field = document.getElementById('f-milestone-field');
+    const select = document.getElementById('f-milestone');
+    field.hidden = state.sheet.kind !== 'task' || !stages.length;
+    select.innerHTML = '<option value="">Без этапа</option>' + stages.map(st =>
+      `<option value="${esc(st.id)}">${esc(st.title)}${st.due ? ` · ${humanDue(st.due)}` : ''}</option>`).join('');
+    select.value = stages.some(st => st.id === selected) ? selected : '';
   },
 
   syncAllDay() {
@@ -669,7 +695,8 @@ const sheet = {
     return {
       title, projectId, notes,
       due: date ? (time ? `${date}T${time}` : date) : '',
-      priority: document.getElementById('f-priority').checked ? 'high' : 'normal'
+      priority: document.getElementById('f-priority').checked ? 'high' : 'normal',
+      milestoneId: document.getElementById('f-milestone').value
     };
   },
 
@@ -798,6 +825,10 @@ document.getElementById('cal-month').addEventListener('click', (e) => {
 document.getElementById('cal-agenda').addEventListener('click', (e) => {
   const item = e.target.closest('[data-item]');
   if (item) {
+    if (/^(ms|dl):/.test(item.dataset.item)) {
+      toast('Этапы проекта меняются в настройках проекта на компьютере');
+      return;
+    }
     const found = findItem(item.dataset.item);
     if (found) sheet.open(found.kind, found.item);
     return;
@@ -871,6 +902,7 @@ document.getElementById('f-save').addEventListener('click', () => sheet.save());
 document.getElementById('f-done').addEventListener('click', () => sheet.toggleDone());
 document.getElementById('f-delete').addEventListener('click', () => sheet.remove());
 document.getElementById('f-allday').addEventListener('change', () => sheet.syncAllDay());
+document.getElementById('f-project').addEventListener('change', (e) => sheet.fillMilestones(e.target.value, ''));
 
 document.querySelectorAll('.sheet-tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -879,6 +911,7 @@ document.querySelectorAll('.sheet-tab').forEach(tab => {
     document.querySelectorAll('[data-only]').forEach(el => { el.hidden = el.dataset.only !== state.sheet.kind; });
     document.getElementById('f-title').placeholder = state.sheet.kind === 'event' ? 'Что за событие' : 'Что сделать';
     sheet.syncAllDay();
+    sheet.fillMilestones(document.getElementById('f-project').value, '');
   });
 });
 
