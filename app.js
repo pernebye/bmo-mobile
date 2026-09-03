@@ -53,18 +53,120 @@ const state = {
 
 // --- токен ---
 
+let keyFromUrl = '';
+
 function readToken() {
-  const fromUrl = new URLSearchParams(location.search).get('k') ||
-    new URLSearchParams(location.hash.replace(/^#/, '')).get('k');
-  if (fromUrl) {
-    localStorage.setItem(KEY_TOKEN, fromUrl);
+  keyFromUrl = new URLSearchParams(location.search).get('k') ||
+    new URLSearchParams(location.hash.replace(/^#/, '')).get('k') || '';
+  if (keyFromUrl) {
     history.replaceState(null, '', location.pathname);
-    return fromUrl;
+    return keyFromUrl;
   }
   return localStorage.getItem(KEY_TOKEN) || '';
 }
 
 let token = readToken();
+
+// --- вход ---
+
+function showLogin(message) {
+  const box = document.getElementById('login');
+  const note = document.getElementById('login-note');
+  if (message) {
+    note.textContent = message;
+    note.classList.add('error');
+  }
+  box.hidden = false;
+  document.getElementById('login-code').focus();
+}
+
+function hideLogin() {
+  document.getElementById('login').hidden = true;
+  stopScanner();
+}
+
+async function submitCode(raw) {
+  const code = (raw || '').trim().replace(/\s+/g, '');
+  if (!code) return false;
+
+  const note = document.getElementById('login-note');
+  note.classList.remove('error');
+  note.textContent = 'Проверяю…';
+
+  try {
+    await resolveApi(true);
+    const res = await fetch(apiBase + '/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, device: navigator.userAgent.slice(0, 60) })
+    });
+    const data = await res.json();
+    if (!data.token) {
+      note.textContent = data.error || 'Код не подошёл';
+      note.classList.add('error');
+      return false;
+    }
+    token = data.token;
+    localStorage.setItem(KEY_TOKEN, token);
+    hideLogin();
+    note.textContent = '';
+    load();
+    return true;
+  } catch {
+    note.textContent = 'Компьютер недоступен — он должен быть включён';
+    note.classList.add('error');
+    return false;
+  }
+}
+
+let scanStream = null;
+
+async function startScanner() {
+  if (!('BarcodeDetector' in window)) {
+    showLogin('Сканер недоступен в этом браузере — введи код вручную');
+    return;
+  }
+  const video = document.getElementById('scanner-video');
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+  } catch {
+    showLogin('Нет доступа к камере — введи код вручную');
+    return;
+  }
+
+  document.getElementById('scanner').hidden = false;
+  video.srcObject = scanStream;
+  await video.play();
+
+  const detector = new BarcodeDetector({ formats: ['qr_code'] });
+  const tick = async () => {
+    if (!scanStream) return;
+    try {
+      const found = await detector.detect(video);
+      if (found.length) {
+        const value = found[0].rawValue || '';
+        // из otpauth-ссылки код не достать, а вот ключ устройства подходит целиком
+        const key = value.startsWith('http') ? (new URL(value).searchParams.get('k') || '') : value;
+        stopScanner();
+        submitCode(key || value);
+        return;
+      }
+    } catch {
+      // кадр не распознан — пробуем следующий
+    }
+    requestAnimationFrame(tick);
+  };
+  tick();
+}
+
+function stopScanner() {
+  if (scanStream) {
+    scanStream.getTracks().forEach(track => track.stop());
+    scanStream = null;
+  }
+  const scanner = document.getElementById('scanner');
+  if (scanner) scanner.hidden = true;
+}
 
 async function api(path, method = 'GET', body) {
   const res = await fetch(apiBase + path, {
@@ -76,7 +178,9 @@ async function api(path, method = 'GET', body) {
     body: body ? JSON.stringify(body) : undefined
   });
   if (res.status === 401) {
-    toast('Нет доступа — откройте ссылку из Telegram заново');
+    localStorage.removeItem(KEY_TOKEN);
+    token = '';
+    showLogin('Сессия истекла — введи код заново');
     throw new Error('unauthorized');
   }
   return res.json();
@@ -535,11 +639,35 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden) load(true);
 });
 
+document.getElementById('login-submit').addEventListener('click', () => {
+  submitCode(document.getElementById('login-code').value);
+});
+
+document.getElementById('login-code').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') submitCode(e.target.value);
+});
+
+// шестизначный код отправляем сами — на телефоне это экономит нажатие
+document.getElementById('login-code').addEventListener('input', (e) => {
+  if (/^\d{6}$/.test(e.target.value.trim())) submitCode(e.target.value);
+});
+
+document.getElementById('login-scan').addEventListener('click', startScanner);
+document.getElementById('scanner-cancel').addEventListener('click', stopScanner);
+
 (async () => {
+  if ('BarcodeDetector' in window) document.getElementById('login-scan').hidden = false;
   await resolveApi();
+
+  // ключ из ссылки сразу меняем на сессию устройства: мастер-ключ на телефоне не храним
+  if (keyFromUrl) {
+    const entered = await submitCode(keyFromUrl);
+    if (entered) return;
+    token = '';
+  }
+
   if (!token) {
-    document.querySelector('.screens').innerHTML =
-      '<div class="empty">Откройте ссылку из Telegram — в ней ключ доступа</div>';
+    showLogin();
     return;
   }
   load();
