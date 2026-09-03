@@ -641,6 +641,23 @@ function renderSessions() {
 
 // --- панель подробностей ---
 
+// Пока шторка открыта, страница под ней не должна ехать: фиксируем body
+// на текущей прокрутке и возвращаем её при закрытии.
+let lockedScrollY = 0;
+function lockScroll(on) {
+  if (on) {
+    if (document.body.classList.contains('sheet-open')) return;
+    lockedScrollY = window.scrollY;
+    document.body.style.top = `-${lockedScrollY}px`;
+    document.body.classList.add('sheet-open');
+  } else {
+    if (!document.body.classList.contains('sheet-open')) return;
+    document.body.classList.remove('sheet-open');
+    document.body.style.top = '';
+    window.scrollTo(0, lockedScrollY);
+  }
+}
+
 const sheet = {
   el: () => document.getElementById('sheet'),
 
@@ -677,13 +694,17 @@ const sheet = {
 
     const done = item && item.status === 'done';
     document.getElementById('f-delete').hidden = isNew;
-    document.getElementById('f-done').hidden = isNew;
-    document.getElementById('f-done').textContent = done ? 'Вернуть' : (isEvent ? 'Прошло' : 'Выполнено');
+    const doneBtn = document.getElementById('f-done');
+    doneBtn.hidden = isNew;
+    doneBtn.classList.toggle('is-done', !!done);
+    doneBtn.title = done ? 'Вернуть в работу' : (isEvent ? 'Отметить прошедшим' : 'Выполнено');
     document.getElementById('f-save').textContent = isNew ? 'Создать' : 'Сохранить';
 
     this.el().hidden = false;
     document.getElementById('sheet-backdrop').hidden = false;
     this.el().classList.toggle('readonly', state.offline);
+    this.el().querySelector('.sheet-body').scrollTop = 0;
+    lockScroll(true);
     if (isNew) setTimeout(() => document.getElementById('f-title').focus(), 120);
   },
 
@@ -691,6 +712,7 @@ const sheet = {
     this.el().hidden = true;
     document.getElementById('sheet-backdrop').hidden = true;
     state.sheet.item = null;
+    lockScroll(false);
   },
 
   // этапы есть не у всех проектов — поле показываем только когда есть из чего выбрать
@@ -958,6 +980,9 @@ document.getElementById('btn-add').addEventListener('click', () => {
 });
 
 document.getElementById('sheet-backdrop').addEventListener('click', () => sheet.close());
+document.getElementById('f-close').addEventListener('click', () => sheet.close());
+// свайп по затемнению не должен доходить до страницы
+document.getElementById('sheet-backdrop').addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 document.getElementById('f-save').addEventListener('click', () => sheet.save());
 document.getElementById('f-done').addEventListener('click', () => sheet.toggleDone());
 document.getElementById('f-delete').addEventListener('click', () => sheet.remove());

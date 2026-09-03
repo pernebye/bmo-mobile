@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=12">
+<link rel="stylesheet" href="styles.css?v=13">
 </head>
 <body>
 
@@ -104,13 +104,20 @@
 <!-- Подробности / создание -->
 <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
 <div class="sheet" id="sheet" hidden>
-  <div class="sheet-handle"></div>
-  <div class="sheet-tabs" id="sheet-tabs">
-    <button class="sheet-tab active" data-kind="task">Задача</button>
-    <button class="sheet-tab" data-kind="event">Событие</button>
+  <div class="sheet-head">
+    <button class="sheet-icon" id="f-close" title="Закрыть"><i data-icon="close"></i></button>
+    <div class="sheet-tabs" id="sheet-tabs">
+      <button class="sheet-tab active" data-kind="task">Задача</button>
+      <button class="sheet-tab" data-kind="event">Событие</button>
+    </div>
+    <div class="sheet-kind" id="sheet-kind" hidden></div>
+    <div class="sheet-head-actions">
+      <button class="sheet-icon" id="f-done" hidden title="Выполнено"><i data-icon="check"></i></button>
+      <button class="sheet-icon sheet-icon-danger" id="f-delete" hidden title="Удалить"><i data-icon="trash"></i></button>
+      <button class="sheet-save" id="f-save">Создать</button>
+    </div>
   </div>
-  <div class="sheet-kind" id="sheet-kind" hidden></div>
-
+  <div class="sheet-body">
   <input type="text" id="f-title" placeholder="Что сделать" autocomplete="off">
 
   <div class="f-row">
@@ -157,17 +164,12 @@
     <input type="text" id="f-check-add" placeholder="+ шаг" autocomplete="off">
   </div>
   <textarea id="f-notes" rows="3" placeholder="Заметки"></textarea>
-
-  <div class="sheet-actions">
-    <button class="ghost" id="f-delete" hidden>Удалить</button>
-    <button class="ghost" id="f-done" hidden>Выполнено</button>
-    <button class="primary" id="f-save">Создать</button>
   </div>
 </div>
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=12"></script>
-<script src="app.js?v=12"></script>
+<script src="icons.js?v=13"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>
