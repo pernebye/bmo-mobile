@@ -7,13 +7,44 @@
   --muted: #8b8b95;
   --dim: #6e6e78;
   --accent: #7c5cff;
+  --accent-active: #6b4ce0;
   --accent-soft: rgba(124, 92, 255, 0.16);
   --green: #34c07a;
   --red: #f0554b;
+  --red-soft: rgba(240, 85, 75, 0.15);
   --border: #26262b;
+  --line-strong: #3a3a42;
+  --bar-bg: rgba(12, 12, 14, 0.92);
+  --backdrop: rgba(0, 0, 0, 0.55);
+  --shadow: rgba(0, 0, 0, 0.45);
+  --on-accent: #fff;
   --radius: 12px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Тема идёт за системной настройкой телефона */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f6f7;
+    --surface: #ffffff;
+    --elevated: #f0f0f2;
+    --hover: #e8e8ec;
+    --text: #17171a;
+    --muted: #5b5b65;
+    --dim: #8a8a94;
+    --accent: #6947f5;
+    --accent-active: #5a37e8;
+    --accent-soft: rgba(105, 71, 245, 0.10);
+    --green: #1f9d5f;
+    --red: #d93a30;
+    --red-soft: rgba(217, 58, 48, 0.10);
+    --border: #e3e3e7;
+    --line-strong: #cfcfd6;
+    --bar-bg: rgba(246, 246, 247, 0.92);
+    --backdrop: rgba(20, 20, 30, 0.35);
+    --shadow: rgba(20, 20, 30, 0.18);
+  }
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -39,7 +70,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(12, 12, 14, 0.92);
+  background: var(--bar-bg);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   z-index: 20;
@@ -136,7 +167,7 @@ input:focus, select:focus { border-color: var(--accent); }
   justify-content: center;
   font-size: 13px;
   font-weight: 700;
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .card-titles { flex: 1; min-width: 0; }
@@ -189,10 +220,10 @@ input:focus, select:focus { border-color: var(--accent); }
   flex: 0 0 45%;
   min-width: 118px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
-.btn-run:active { background: #6b4ce0; }
+.btn-run:active { background: var(--accent-active); }
 
 .btn-narrow {
   flex: 0 0 auto;
@@ -213,7 +244,7 @@ input:focus, select:focus { border-color: var(--accent); }
 }
 
 .badge-active { background: var(--accent-soft); color: var(--accent); }
-.badge-alert { background: rgba(240, 85, 75, 0.15); color: var(--red); }
+.badge-alert { background: var(--red-soft); color: var(--red); }
 
 /* Задачи */
 .group-title {
@@ -242,7 +273,7 @@ input:focus, select:focus { border-color: var(--accent); }
   width: 21px; height: 21px;
   flex-shrink: 0;
   margin-top: 1px;
-  border: 1.6px solid #3a3a42;
+  border: 1.6px solid var(--line-strong);
   border-radius: 50%;
   background: transparent;
 }
@@ -276,7 +307,7 @@ input:focus, select:focus { border-color: var(--accent); }
   bottom: 0; left: 0; right: 0;
   display: flex;
   padding-bottom: var(--safe-bottom);
-  background: rgba(12, 12, 14, 0.94);
+  background: var(--bar-bg);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
   z-index: 20;
@@ -306,7 +337,7 @@ input:focus, select:focus { border-color: var(--accent); }
   padding: 0 4px;
   border-radius: 8px;
   background: var(--red);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 9.5px;
   font-style: normal;
   line-height: 15px;
@@ -326,8 +357,8 @@ input:focus, select:focus { border-color: var(--accent); }
   border: none;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+  color: var(--on-accent);
+  box-shadow: 0 8px 22px var(--shadow);
   z-index: 15;
 }
 
@@ -337,7 +368,7 @@ input:focus, select:focus { border-color: var(--accent); }
 .sheet-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--backdrop);
   z-index: 30;
 }
 
@@ -361,7 +392,7 @@ input:focus, select:focus { border-color: var(--accent); }
   width: 38px; height: 4px;
   margin: 0 auto 8px;
   border-radius: 2px;
-  background: #33333a;
+  background: var(--line-strong);
 }
 
 .sheet-tabs { display: flex; gap: 6px; }
@@ -409,13 +440,13 @@ input:focus, select:focus { border-color: var(--accent); }
   border: none;
   border-radius: 11px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-family: inherit;
   font-size: 15px;
   font-weight: 600;
 }
 
-.primary:active { background: #6b4ce0; }
+.primary:active { background: var(--accent-active); }
 
 /* Уведомление */
 .toast {
@@ -481,7 +512,7 @@ input:focus, select:focus { border-color: var(--accent); }
   font-variant-numeric: tabular-nums;
 }
 
-#login-code::placeholder { letter-spacing: 5px; color: #3a3a42; }
+#login-code::placeholder { letter-spacing: 5px; color: var(--line-strong); }
 
 .login-scan {
   padding: 11px;
