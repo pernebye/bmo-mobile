@@ -674,14 +674,14 @@ input:focus, select:focus { border-color: var(--accent); }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 4px;
   padding-top: 4px;
 }
 
 .agenda-date b {
-  width: 32px;
-  height: 32px;
-  line-height: 32px;
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
   text-align: center;
   border-radius: 50%;
   font-size: 16px;
@@ -690,7 +690,9 @@ input:focus, select:focus { border-color: var(--accent); }
 
 .agenda-date span { font-size: 10.5px; text-transform: uppercase; color: var(--dim); }
 .agenda-date.today b { background: var(--accent); color: var(--on-accent); }
-.agenda-day.selected .agenda-date b:not(.today) { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+/* выбранный день отмечаем цветом, а не второй окружностью — она наезжала на день недели */
+.agenda-day.selected .agenda-date:not(.today) b { color: var(--accent); }
+.agenda-day.selected .agenda-date span { color: var(--accent); font-weight: 600; }
 
 .agenda-items {
   flex: 1;
