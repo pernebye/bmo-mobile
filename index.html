@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=5">
+<link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
 
@@ -69,7 +69,11 @@
       <button class="chip" data-scope="events">Созвоны<span>0</span></button>
     </div>
     <div class="list" id="tasks-list"></div>
-    <button class="fab" id="btn-add">+</button>
+    <button class="fab" id="btn-add" aria-label="Добавить">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+    </button>
   </section>
 
   <!-- Сессии -->
@@ -120,6 +124,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

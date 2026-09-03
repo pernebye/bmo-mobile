@@ -319,12 +319,14 @@ input:focus, select:focus { border-color: var(--accent); }
   right: 18px;
   bottom: calc(84px + var(--safe-bottom));
   width: 52px; height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: none;
   border-radius: 50%;
   background: var(--accent);
   color: #fff;
-  font-size: 27px;
-  line-height: 1;
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
   z-index: 15;
 }
