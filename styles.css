@@ -1014,3 +1014,16 @@ body.sheet-open {
 }
 
 .sheet.readonly .sheet-head-actions { display: none; }
+
+/* Свайп шторки: ручка сверху как подсказка, что её можно утянуть вниз */
+.sheet-head::before {
+  content: '';
+  position: absolute;
+  top: 6px; left: 50%;
+  width: 36px; height: 4px;
+  margin-left: -18px;
+  border-radius: 2px;
+  background: var(--line-strong);
+}
+.sheet-head { position: relative; padding-top: 16px; touch-action: pan-y; }
+.sheet { will-change: transform; }

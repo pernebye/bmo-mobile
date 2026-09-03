@@ -981,6 +981,40 @@ document.getElementById('btn-add').addEventListener('click', () => {
 
 document.getElementById('sheet-backdrop').addEventListener('click', () => sheet.close());
 document.getElementById('f-close').addEventListener('click', () => sheet.close());
+
+// Свайп вниз закрывает шторку: за шапку — всегда, за тело — только когда оно
+// прокручено к самому верху, иначе жест остаётся за скроллом содержимого.
+const swipe = { startY: 0, dy: 0, active: false };
+const sheetEl = document.getElementById('sheet');
+
+sheetEl.addEventListener('touchstart', (e) => {
+  const body = sheetEl.querySelector('.sheet-body');
+  const onHead = !!e.target.closest('.sheet-head');
+  if (!onHead && body.scrollTop > 0) return;
+  swipe.active = true;
+  swipe.startY = e.touches[0].clientY;
+  swipe.dy = 0;
+  sheetEl.style.transition = 'none';
+}, { passive: true });
+
+sheetEl.addEventListener('touchmove', (e) => {
+  if (!swipe.active) return;
+  swipe.dy = Math.max(0, e.touches[0].clientY - swipe.startY);
+  if (swipe.dy > 0) sheetEl.style.transform = `translateY(${swipe.dy}px)`;
+}, { passive: true });
+
+sheetEl.addEventListener('touchend', () => {
+  if (!swipe.active) return;
+  swipe.active = false;
+  sheetEl.style.transition = 'transform 180ms ease-out';
+  if (swipe.dy > 90) {
+    sheetEl.style.transform = 'translateY(100%)';
+    setTimeout(() => { sheet.close(); sheetEl.style.transform = ''; sheetEl.style.transition = ''; }, 180);
+  } else {
+    sheetEl.style.transform = '';
+    setTimeout(() => { sheetEl.style.transition = ''; }, 200);
+  }
+});
 // свайп по затемнению не должен доходить до страницы
 document.getElementById('sheet-backdrop').addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 document.getElementById('f-save').addEventListener('click', () => sheet.save());
@@ -1061,7 +1095,22 @@ document.getElementById('scanner-cancel').addEventListener('click', stopScanner)
 
 // --- старт ---
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    // при каждом возвращении в приложение спрашиваем сервер, нет ли новой версии
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
+  }).catch(() => {});
+  navigator.serviceWorker.addEventListener('message', (e) => {
+    if (e.data?.type !== 'updated') return;
+    const known = localStorage.getItem('runner-sw-version');
+    localStorage.setItem('runner-sw-version', e.data.version);
+    // первая установка — просто запоминаем; смена версии — перезагружаем с уведомлением
+    if (known && known !== e.data.version) {
+      toast(`Runner обновлён до ${e.data.version}`);
+      setTimeout(() => location.reload(), 900);
+    }
+  });
+}
 document.addEventListener('visibilitychange', () => { if (!document.hidden && token) load(true); });
 
 (async () => {
