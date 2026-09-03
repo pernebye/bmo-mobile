@@ -890,3 +890,64 @@ textarea:focus { border-color: var(--accent); }
 .cat-milestone { --cat: var(--accent); }
 .agenda-item.cat-milestone { background: transparent; border: 1px solid var(--accent); border-left-width: 4px; }
 .task-stage::before { content: '\25C6 '; font-size: 8px; color: var(--accent); }
+
+/* Офлайн: только просмотр */
+.offline-pill {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--elevated);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.offline-bar {
+  position: fixed;
+  top: calc(52px + var(--safe-top));
+  left: 0; right: 0;
+  z-index: 18;
+  padding: 7px 14px;
+  background: var(--elevated);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+
+body.offline .screens { padding-top: calc(92px + var(--safe-top)); }
+body.offline .btn-run, body.offline .btn-narrow, body.offline .fab, body.offline .check,
+body.offline .agenda-empty { opacity: 0.4; pointer-events: none; }
+body.offline .task .check { border-style: dashed; }
+.sheet.readonly input, .sheet.readonly select, .sheet.readonly textarea { pointer-events: none; opacity: 0.7; }
+.sheet.readonly .sheet-actions, .sheet.readonly #f-check-add, .sheet.readonly .quick-dates { display: none; }
+
+/* Чек-лист */
+.f-checklist { display: flex; flex-direction: column; gap: 6px; }
+.f-check-head { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--dim); }
+.f-check-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+
+.f-check-item {
+  display: grid;
+  grid-template-columns: 22px 1fr 28px;
+  align-items: center;
+  gap: 8px;
+}
+
+.f-check-item input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--green); margin: 0; }
+.f-check-item input[type="text"] { padding: 8px 10px; font-size: 14px; }
+.f-check-item.done input[type="text"] { color: var(--dim); text-decoration: line-through; }
+
+.f-check-remove {
+  border: none;
+  background: transparent;
+  color: var(--dim);
+  font-size: 20px;
+  line-height: 1;
+}
+
+#f-check-add { font-size: 14px; }
+
+.task-steps { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.task-steps i { width: 32px; height: 4px; border-radius: 2px; background: var(--elevated); position: relative; overflow: hidden; }
+.task-steps i::after { content: ''; position: absolute; inset: 0; width: var(--p, 0%); background: var(--accent); }
+.task-steps.complete { color: var(--green); }
+.task-steps.complete i::after { background: var(--green); }

@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=11">
+<link rel="stylesheet" href="styles.css?v=12">
 </head>
 <body>
 
@@ -45,7 +45,9 @@
 
 <header class="topbar">
   <div class="topbar-title" id="screen-title">Проекты</div>
+  <span class="offline-pill" id="offline-pill" hidden>только просмотр</span>
 </header>
+<div class="offline-bar" id="offline-bar" hidden>Нет связи с компьютером — показаны последние данные, изменения недоступны</div>
 <div class="ptr" id="ptr"><i data-icon="reload"></i></div>
 
 <main class="screens">
@@ -149,6 +151,11 @@
   <label class="f-field" data-only="task" id="f-milestone-field" hidden>Этап проекта<select id="f-milestone"><option value="">Без этапа</option></select></label>
   <input type="text" id="f-location" placeholder="Где — ссылка или адрес" data-only="event" autocomplete="off">
   <label class="switch-row" data-only="task"><span>Важная</span><input type="checkbox" id="f-priority"></label>
+  <div class="f-checklist" data-only="task">
+    <div class="f-check-head"><span>Чек-лист</span><span id="f-check-progress"></span></div>
+    <ul class="f-check-list" id="f-check-list"></ul>
+    <input type="text" id="f-check-add" placeholder="+ шаг" autocomplete="off">
+  </div>
   <textarea id="f-notes" rows="3" placeholder="Заметки"></textarea>
 
   <div class="sheet-actions">
@@ -160,7 +167,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=11"></script>
-<script src="app.js?v=11"></script>
+<script src="icons.js?v=12"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>

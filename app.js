@@ -2,6 +2,7 @@
 
 const KEY_TOKEN = 'runner-token';
 const KEY_API = 'runner-api';
+const KEY_STATE = 'runner-state';
 
 // Приложение живёт на постоянном адресе GitHub Pages, а компьютер каждый раз
 // получает новый адрес туннеля — он публикуется в origin.json рядом с приложением.
@@ -16,7 +17,8 @@ const state = {
   projects: [], workspaces: [], tasks: [], events: [], sessions: [], activity: {},
   screen: 'projects', scope: 'all', workspace: '', search: '',
   calCursor: new Date(), calSelected: '',
-  sheet: { kind: 'task', item: null }
+  sheet: { kind: 'task', item: null, steps: [] },
+  offline: false
 };
 
 async function resolveApi(fresh) {
@@ -266,17 +268,15 @@ async function load(silent) {
       await resolveApi(true);
       data = await api('/api/state');
     }
-    Object.assign(state, {
-      projects: data.projects || [],
-      workspaces: data.workspaces || [],
-      tasks: data.tasks || [],
-      events: data.events || [],
-      sessions: data.sessions || [],
-      activity: data.activity || {}
-    });
-    renderAll();
+    applyState(data);
+    try { localStorage.setItem(KEY_STATE, JSON.stringify({ data, at: Date.now() })); } catch {}
+    setOffline(false);
   } catch (err) {
-    if (err.message !== 'unauthorized') toast('Компьютер недоступен');
+    if (err.message === 'unauthorized') return;
+    // компьютер выключен или туннель упал: показываем последнее известное, но ничего не даём менять
+    const cached = readCachedState();
+    if (cached && !state.projects.length) applyState(cached.data);
+    setOffline(true, cached?.at);
   } finally {
     ptr.classList.remove('loading', 'ready', 'pulling');
     ptr.style.transform = '';
@@ -323,6 +323,36 @@ document.addEventListener('touchend', () => {
     ptr.style.opacity = '';
   }
 });
+
+function applyState(data) {
+  Object.assign(state, {
+    projects: data.projects || [],
+    workspaces: data.workspaces || [],
+    tasks: data.tasks || [],
+    events: data.events || [],
+    sessions: data.sessions || [],
+    activity: data.activity || {}
+  });
+  renderAll();
+}
+
+function readCachedState() {
+  try {
+    return JSON.parse(localStorage.getItem(KEY_STATE) || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function setOffline(on, cachedAt) {
+  state.offline = on;
+  document.body.classList.toggle('offline', on);
+  document.getElementById('offline-pill').hidden = !on;
+  const bar = document.getElementById('offline-bar');
+  bar.hidden = !on;
+  if (on && cachedAt) bar.textContent = `Нет связи с компьютером — данные на ${ago(new Date(cachedAt).toISOString())}, изменения недоступны`;
+  if (on) sheet.close();
+}
 
 function renderAll() {
   renderWorkspaces();
@@ -445,6 +475,11 @@ function taskRow(task) {
   if (project) meta.push(`<span>${esc(project.name)}</span>`);
   const stage = project && (project.milestones || []).find(s => s.id === task.milestoneId);
   if (stage) meta.push(`<span class="task-stage">${esc(stage.title)}</span>`);
+  const steps = task.checklist || [];
+  if (steps.length) {
+    const done = steps.filter(st => st.done).length;
+    meta.push(`<span class="task-steps${done === steps.length ? ' complete' : ''}"><i style="--p:${Math.round(done / steps.length * 100)}%"></i>${done}/${steps.length}</span>`);
+  }
   return `
     <article class="task${isOverdue(task) ? ' overdue' : ''}${task.status === 'done' ? ' done' : ''}" data-id="${esc(task.id)}">
       <button class="check" data-act="done"></button>
@@ -610,7 +645,8 @@ const sheet = {
   el: () => document.getElementById('sheet'),
 
   open(kind, item, defaults = {}) {
-    state.sheet = { kind, item: item || null };
+    state.sheet = { kind, item: item || null, steps: (item?.checklist || []).map(st => ({ ...st })) };
+    this.renderSteps();
     const isNew = !item;
     const isEvent = kind === 'event';
 
@@ -647,6 +683,7 @@ const sheet = {
 
     this.el().hidden = false;
     document.getElementById('sheet-backdrop').hidden = false;
+    this.el().classList.toggle('readonly', state.offline);
     if (isNew) setTimeout(() => document.getElementById('f-title').focus(), 120);
   },
 
@@ -665,6 +702,19 @@ const sheet = {
     select.innerHTML = '<option value="">Без этапа</option>' + stages.map(st =>
       `<option value="${esc(st.id)}">${esc(st.title)}${st.due ? ` · ${humanDue(st.due)}` : ''}</option>`).join('');
     select.value = stages.some(st => st.id === selected) ? selected : '';
+  },
+
+  renderSteps() {
+    const list = document.getElementById('f-check-list');
+    const steps = state.sheet.steps;
+    list.innerHTML = steps.map(st => `
+      <li class="f-check-item${st.done ? ' done' : ''}" data-step="${esc(st.id)}">
+        <input type="checkbox" ${st.done ? 'checked' : ''}>
+        <input type="text" value="${esc(st.text)}">
+        <button type="button" class="f-check-remove" data-act="remove">&times;</button>
+      </li>`).join('');
+    const done = steps.filter(st => st.done).length;
+    document.getElementById('f-check-progress').textContent = steps.length ? `${done} из ${steps.length}` : '';
   },
 
   syncAllDay() {
@@ -696,11 +746,13 @@ const sheet = {
       title, projectId, notes,
       due: date ? (time ? `${date}T${time}` : date) : '',
       priority: document.getElementById('f-priority').checked ? 'high' : 'normal',
-      milestoneId: document.getElementById('f-milestone').value
+      milestoneId: document.getElementById('f-milestone').value,
+      checklist: state.sheet.steps.filter(st => st.text.trim()).map(st => ({ id: st.id, text: st.text.trim(), done: !!st.done }))
     };
   },
 
   async save() {
+    if (blocked()) return;
     const payload = this.collect();
     if (!payload) return;
     const { kind, item } = state.sheet;
@@ -730,7 +782,7 @@ const sheet = {
 
   async toggleDone() {
     const { item } = state.sheet;
-    if (!item) return;
+    if (!item || blocked()) return;
     const done = item.status === 'done';
     try {
       await api(done ? '/api/reopen' : '/api/done', 'POST', { id: item.id });
@@ -744,7 +796,7 @@ const sheet = {
 
   async remove() {
     const { item, kind } = state.sheet;
-    if (!item) return;
+    if (!item || blocked()) return;
     try {
       await api('/api/delete', 'POST', { id: item.id });
       if (kind === 'event') state.events = state.events.filter(e => e.id !== item.id);
@@ -760,10 +812,16 @@ const sheet = {
 
 // --- события интерфейса ---
 
+function blocked() {
+  if (!state.offline) return false;
+  toast('Нет связи с компьютером — только просмотр');
+  return true;
+}
+
 document.getElementById('projects-list').addEventListener('click', async (e) => {
   const card = e.target.closest('[data-project]');
   const action = e.target.closest('[data-act]')?.dataset.act;
-  if (!card || !action) return;
+  if (!card || !action || blocked()) return;
   const projectId = card.dataset.project;
   const name = state.projects.find(p => p.id === projectId)?.name || '';
   try {
@@ -781,7 +839,7 @@ document.getElementById('projects-list').addEventListener('click', async (e) => 
 
 document.getElementById('sessions-list').addEventListener('click', async (e) => {
   const card = e.target.closest('[data-session]');
-  if (!card || !e.target.closest('[data-act="resume"]')) return;
+  if (!card || !e.target.closest('[data-act="resume"]') || blocked()) return;
   const session = state.sessions.find(s => s.sessionId === card.dataset.session);
   if (!session) return;
   try {
@@ -799,6 +857,7 @@ document.getElementById('tasks-list').addEventListener('click', async (e) => {
   if (!task) return;
   const act = e.target.closest('[data-act]')?.dataset.act;
   if (act === 'done') {
+    if (blocked()) return;
     const done = task.status === 'done';
     row.classList.toggle('done', !done);
     try {
@@ -834,7 +893,7 @@ document.getElementById('cal-agenda').addEventListener('click', (e) => {
     return;
   }
   const empty = e.target.closest('[data-new-on]');
-  if (empty) sheet.open('event', null, { at: `${empty.dataset.newOn}T10:00` });
+  if (empty && !blocked()) sheet.open('event', null, { at: `${empty.dataset.newOn}T10:00` });
 });
 
 document.getElementById('cal-prev').addEventListener('click', () => shiftMonth(-1));
@@ -893,6 +952,7 @@ document.querySelectorAll('.tab').forEach(tab => {
 });
 
 document.getElementById('btn-add').addEventListener('click', () => {
+  if (blocked()) return;
   if (state.screen === 'calendar') sheet.open('event', null, { at: `${state.calSelected || ymd(new Date())}T10:00` });
   else sheet.open('task', null);
 });
@@ -902,6 +962,48 @@ document.getElementById('f-save').addEventListener('click', () => sheet.save());
 document.getElementById('f-done').addEventListener('click', () => sheet.toggleDone());
 document.getElementById('f-delete').addEventListener('click', () => sheet.remove());
 document.getElementById('f-allday').addEventListener('change', () => sheet.syncAllDay());
+
+document.getElementById('f-check-add').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const text = e.target.value.trim();
+  if (!text) return;
+  state.sheet.steps.push({ id: Math.random().toString(16).slice(2, 10), text, done: false });
+  e.target.value = '';
+  sheet.renderSteps();
+});
+
+document.getElementById('f-check-list').addEventListener('click', async (e) => {
+  const li = e.target.closest('[data-step]');
+  if (!li) return;
+  const step = state.sheet.steps.find(st => st.id === li.dataset.step);
+  if (!step) return;
+  if (e.target.closest('[data-act="remove"]')) {
+    state.sheet.steps = state.sheet.steps.filter(st => st !== step);
+    sheet.renderSteps();
+  } else if (e.target.matches('input[type="checkbox"]')) {
+    step.done = e.target.checked;
+    sheet.renderSteps();
+    // у существующей задачи отметка уходит сразу, не дожидаясь «Сохранить»
+    const item = state.sheet.item;
+    if (item && !blocked()) {
+      try {
+        await api('/api/check', 'POST', { id: item.id, step: step.id, done: step.done });
+        const saved = (item.checklist || []).find(st => st.id === step.id);
+        if (saved) saved.done = step.done;
+        renderTasks();
+      } catch {
+        toast('Не удалось отметить');
+      }
+    }
+  }
+});
+
+document.getElementById('f-check-list').addEventListener('input', (e) => {
+  const li = e.target.closest('[data-step]');
+  const step = li && state.sheet.steps.find(st => st.id === li.dataset.step);
+  if (step && e.target.matches('input[type="text"]')) step.text = e.target.value;
+});
 document.getElementById('f-project').addEventListener('change', (e) => sheet.fillMilestones(e.target.value, ''));
 
 document.querySelectorAll('.sheet-tab').forEach(tab => {
@@ -952,6 +1054,8 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && to
     showLogin();
     return;
   }
+  const cached = readCachedState();
+  if (cached) applyState(cached.data);
   load();
   setInterval(() => { if (!document.hidden) load(true); }, 60000);
   // адрес туннеля меняется вместе с перезагрузкой компьютера
