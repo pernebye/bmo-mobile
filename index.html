@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=7">
+<link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
 
@@ -65,17 +65,29 @@
   <!-- Задачи -->
   <section class="screen" data-screen="tasks">
     <div class="chips" id="task-chips">
-      <button class="chip active" data-scope="today">Сегодня<span>0</span></button>
+      <button class="chip active" data-scope="all">Все<span>0</span></button>
+      <button class="chip" data-scope="today">Сегодня<span>0</span></button>
       <button class="chip" data-scope="week">Неделя<span>0</span></button>
-      <button class="chip" data-scope="all">Все<span>0</span></button>
-      <button class="chip" data-scope="events">Созвоны<span>0</span></button>
+      <button class="chip" data-scope="overdue">Просрочено<span>0</span></button>
+      <button class="chip" data-scope="done">Выполненные<span>0</span></button>
     </div>
     <div class="list" id="tasks-list"></div>
-    <button class="fab" id="btn-add" aria-label="Добавить">
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-        <path d="M12 5v14M5 12h14"/>
-      </svg>
-    </button>
+  </section>
+
+  <!-- Календарь -->
+  <section class="screen" data-screen="calendar">
+    <div class="cal-top">
+      <button class="cal-month-btn" id="cal-month-btn"><span id="cal-month-title"></span>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 10l5 5 5-5"/></svg>
+      </button>
+      <div class="cal-top-actions">
+        <button class="cal-icon-btn" id="cal-prev">&#8249;</button>
+        <button class="cal-icon-btn cal-today-btn" id="cal-today">Сегодня</button>
+        <button class="cal-icon-btn" id="cal-next">&#8250;</button>
+      </div>
+    </div>
+    <div class="cal-month" id="cal-month"></div>
+    <div class="cal-agenda" id="cal-agenda"></div>
   </section>
 
   <!-- Сессии -->
@@ -83,6 +95,12 @@
     <div class="list" id="sessions-list"></div>
   </section>
 </main>
+
+<button class="fab" id="btn-add" aria-label="Добавить" hidden>
+  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+    <path d="M12 5v14M5 12h14"/>
+  </svg>
+</button>
 
 <nav class="tabbar">
   <button class="tab active" data-target="projects">
@@ -93,39 +111,76 @@
     <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5 6 9.5 9.5 6"/><path d="M4 16.5 6 18.5 9.5 15"/><path d="M12.5 7.5H20M12.5 16.5H20"/></svg>
     <span>Задачи<i class="tab-badge" id="tab-badge" hidden></i></span>
   </button>
+  <button class="tab" data-target="calendar">
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
+    <span>Календарь</span>
+  </button>
   <button class="tab" data-target="sessions">
     <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5 9 11l-4.5 4.5"/><path d="M11.5 17.5H19"/></svg>
     <span>Сессии</span>
   </button>
 </nav>
 
-<!-- Форма задачи -->
+<!-- Подробности / создание -->
 <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
 <div class="sheet" id="sheet" hidden>
   <div class="sheet-handle"></div>
-  <div class="sheet-tabs">
+  <div class="sheet-tabs" id="sheet-tabs">
     <button class="sheet-tab active" data-kind="task">Задача</button>
-    <button class="sheet-tab" data-kind="event">Созвон</button>
+    <button class="sheet-tab" data-kind="event">Событие</button>
   </div>
-  <input type="text" id="new-title" placeholder="Что сделать" autocomplete="off">
-  <input type="text" id="new-due" placeholder="Когда — «завтра 15:00», «в пятницу»" autocomplete="off">
+  <div class="sheet-kind" id="sheet-kind" hidden></div>
+
+  <input type="text" id="f-title" placeholder="Что сделать" autocomplete="off">
+
+  <div class="f-row">
+    <label class="f-field">Дата<input type="date" id="f-date"></label>
+    <label class="f-field" id="f-time-field">Время<input type="time" id="f-time"></label>
+    <label class="f-field" id="f-duration-field" data-only="event">Длительность
+      <select id="f-duration">
+        <option value="15">15 мин</option>
+        <option value="30">30 мин</option>
+        <option value="60" selected>1 час</option>
+        <option value="90">1,5 часа</option>
+        <option value="120">2 часа</option>
+        <option value="180">3 часа</option>
+      </select>
+    </label>
+  </div>
   <div class="quick-dates" id="quick-dates">
-    <button data-due="сегодня">Сегодня</button>
-    <button data-due="завтра">Завтра</button>
-    <button data-due="завтра 10:00">Завтра утром</button>
-    <button data-due="в пятницу">В пятницу</button>
-    <button data-due="через неделю">Через неделю</button>
+    <button data-due="0">Сегодня</button>
+    <button data-due="1">Завтра</button>
+    <button data-due="2">Послезавтра</button>
+    <button data-due="7">Через неделю</button>
   </div>
-  <select id="new-project"><option value="">Без проекта</option></select>
-  <label class="switch-row" id="priority-row">
-    <span>Важная</span>
-    <input type="checkbox" id="new-priority">
-  </label>
-  <button class="primary" id="btn-save">Создать</button>
+
+  <label class="switch-row" data-only="event"><span>Весь день</span><input type="checkbox" id="f-allday"></label>
+
+  <div class="f-row">
+    <label class="f-field">Проект<select id="f-project"><option value="">Без проекта</option></select></label>
+    <label class="f-field" data-only="event">Тип
+      <select id="f-category">
+        <option value="work">Работа</option>
+        <option value="call">Созвон</option>
+        <option value="personal">Личное</option>
+        <option value="other">Другое</option>
+      </select>
+    </label>
+  </div>
+
+  <input type="text" id="f-location" placeholder="Где — ссылка или адрес" data-only="event" autocomplete="off">
+  <label class="switch-row" data-only="task"><span>Важная</span><input type="checkbox" id="f-priority"></label>
+  <textarea id="f-notes" rows="3" placeholder="Заметки"></textarea>
+
+  <div class="sheet-actions">
+    <button class="ghost" id="f-delete" hidden>Удалить</button>
+    <button class="ghost" id="f-done" hidden>Выполнено</button>
+    <button class="primary" id="f-save">Создать</button>
+  </div>
 </div>
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
