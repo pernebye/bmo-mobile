@@ -842,3 +842,44 @@ textarea:focus { border-color: var(--accent); }
 #f-delete:active { color: var(--red); }
 
 .btn-wide { flex: 1 1 auto; }
+
+/* Иконки из библиотеки: размер задаётся здесь, цвет — currentColor */
+[data-icon] { display: inline-flex; align-items: center; justify-content: center; line-height: 0; }
+[data-icon] svg { width: 1em; height: 1em; }
+.tab [data-icon] { font-size: 22px; }
+.btn [data-icon] { font-size: 16px; }
+.btn-run [data-icon] { font-size: 14px; }
+.cal-icon-btn [data-icon] { font-size: 18px; }
+.cal-month-btn [data-icon] { font-size: 16px; color: var(--dim); transition: transform 150ms ease-out; }
+.cal-month-btn.collapsed [data-icon] { transform: rotate(-90deg); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; white-space: nowrap; }
+.btn-icon-only { min-width: 44px; padding: 9px 0; }
+
+/* Обновление потягиванием вниз */
+.ptr {
+  position: fixed;
+  top: calc(52px + var(--safe-top));
+  left: 50%;
+  z-index: 19;
+  width: 36px;
+  height: 36px;
+  margin-left: -18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--elevated);
+  color: var(--muted);
+  box-shadow: 0 4px 14px var(--shadow);
+  transform: translateY(-52px);
+  opacity: 0;
+  transition: transform 180ms ease-out, opacity 180ms ease-out;
+  pointer-events: none;
+}
+
+.ptr.pulling { transition: none; }
+.ptr.ready { color: var(--accent); }
+.ptr.loading { transform: translateY(14px) !important; opacity: 1 !important; }
+.ptr [data-icon] { font-size: 18px; }
+.ptr.loading [data-icon] { animation: spin 0.8s linear infinite; }

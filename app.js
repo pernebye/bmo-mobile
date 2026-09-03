@@ -254,8 +254,8 @@ function toast(text) {
 // --- загрузка ---
 
 async function load(silent) {
-  const btn = document.getElementById('btn-reload');
-  if (!silent) btn.classList.add('spinning');
+  const ptr = document.getElementById('ptr');
+  if (!silent) ptr.classList.add('loading');
   try {
     let data;
     try {
@@ -278,9 +278,51 @@ async function load(silent) {
   } catch (err) {
     if (err.message !== 'unauthorized') toast('Компьютер недоступен');
   } finally {
-    btn.classList.remove('spinning');
+    ptr.classList.remove('loading', 'ready', 'pulling');
+    ptr.style.transform = '';
+    ptr.style.opacity = '';
   }
 }
+
+// --- обновление потягиванием вниз ---
+
+const pull = { startY: 0, active: false, distance: 0 };
+const PULL_THRESHOLD = 72;
+
+document.addEventListener('touchstart', (e) => {
+  if (window.scrollY > 0 || !document.getElementById('sheet').hidden || !document.getElementById('login').hidden) return;
+  pull.startY = e.touches[0].clientY;
+  pull.active = true;
+  pull.distance = 0;
+}, { passive: true });
+
+document.addEventListener('touchmove', (e) => {
+  if (!pull.active) return;
+  const dy = e.touches[0].clientY - pull.startY;
+  if (dy <= 0 || window.scrollY > 0) { pull.distance = 0; return; }
+  // сопротивление: чем дальше тянешь, тем медленнее едет индикатор
+  pull.distance = Math.min(dy * 0.55, 110);
+  const ptr = document.getElementById('ptr');
+  ptr.classList.add('pulling');
+  ptr.classList.toggle('ready', pull.distance >= PULL_THRESHOLD);
+  ptr.style.transform = `translateY(${pull.distance - 52}px) rotate(${pull.distance * 3}deg)`;
+  ptr.style.opacity = Math.min(pull.distance / PULL_THRESHOLD, 1);
+}, { passive: true });
+
+document.addEventListener('touchend', () => {
+  if (!pull.active) return;
+  pull.active = false;
+  const ptr = document.getElementById('ptr');
+  ptr.classList.remove('pulling');
+  if (pull.distance >= PULL_THRESHOLD && token) {
+    ptr.style.transform = '';
+    load();
+  } else {
+    ptr.classList.remove('ready');
+    ptr.style.transform = '';
+    ptr.style.opacity = '';
+  }
+});
 
 function renderAll() {
   renderWorkspaces();
@@ -342,15 +384,16 @@ function renderProjects() {
           ${project.status === 'active' ? '<span class="badge badge-active">в работе</span>' : ''}
         </div>
         <div class="card-actions">
-          <button class="btn btn-run" data-act="launch">Claude</button>
+          <button class="btn btn-run" data-act="launch"><i data-icon="claude"></i>Claude</button>
           <div class="card-extra">
-            ${hasDev ? '<button class="btn btn-narrow" data-act="dev">Dev</button>' : ''}
-            ${project.prodUrl ? `<a class="btn btn-narrow" href="${esc(project.prodUrl)}" target="_blank" rel="noopener">Сайт</a>` : ''}
+            ${hasDev ? '<button class="btn btn-narrow btn-icon-only" data-act="dev" title="Dev-серверы"><i data-icon="play"></i></button>' : ''}
+            ${project.prodUrl ? `<a class="btn btn-narrow btn-icon-only" href="${esc(project.prodUrl)}" target="_blank" rel="noopener" title="Сайт"><i data-icon="globe"></i></a>` : ''}
           </div>
         </div>
       </article>
     `;
   }).join('');
+  mountIcons(list);
 }
 
 // --- задачи ---
@@ -540,10 +583,11 @@ function renderSessions() {
         </div>
       </div>
       <div class="card-actions">
-        <button class="btn btn-run btn-wide" data-act="resume">Продолжить сессию</button>
+        <button class="btn btn-run btn-wide" data-act="resume"><i data-icon="terminal"></i>Продолжить</button>
       </div>
     </article>
   `).join('');
+  mountIcons(list);
 }
 
 // --- панель подробностей ---
@@ -817,8 +861,6 @@ document.querySelectorAll('.tab').forEach(tab => {
   });
 });
 
-document.getElementById('btn-reload').addEventListener('click', () => load());
-
 document.getElementById('btn-add').addEventListener('click', () => {
   if (state.screen === 'calendar') sheet.open('event', null, { at: `${state.calSelected || ymd(new Date())}T10:00` });
   else sheet.open('task', null);
@@ -863,6 +905,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
 document.addEventListener('visibilitychange', () => { if (!document.hidden && token) load(true); });
 
 (async () => {
+  mountIcons();
   if ('BarcodeDetector' in window) document.getElementById('login-scan').hidden = false;
   await resolveApi();
 

@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=8">
+<link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body>
 
@@ -33,7 +33,7 @@
            placeholder="000000" maxlength="64">
     <button class="primary" id="login-submit">Войти</button>
 
-    <button class="login-scan" id="login-scan" hidden>Отсканировать QR с ключом</button>
+    <button class="login-scan" id="login-scan" hidden><i data-icon="scan"></i> Отсканировать QR с ключом</button>
     <p class="login-note" id="login-note">Нет доступа к Authenticator? Отсканируй QR с ключом устройства или вставь его в то же поле.</p>
 
     <div class="scanner" id="scanner" hidden>
@@ -45,12 +45,8 @@
 
 <header class="topbar">
   <div class="topbar-title" id="screen-title">Проекты</div>
-  <button class="topbar-btn" id="btn-reload" title="Обновить">
-    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-      <path d="M20 11.5A8 8 0 1 1 17.3 6"/><path d="M20 4v5h-5"/>
-    </svg>
-  </button>
 </header>
+<div class="ptr" id="ptr"><i data-icon="reload"></i></div>
 
 <main class="screens">
   <!-- Проекты -->
@@ -77,13 +73,11 @@
   <!-- Календарь -->
   <section class="screen" data-screen="calendar">
     <div class="cal-top">
-      <button class="cal-month-btn" id="cal-month-btn"><span id="cal-month-title"></span>
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 10l5 5 5-5"/></svg>
-      </button>
+      <button class="cal-month-btn" id="cal-month-btn"><span id="cal-month-title"></span><i data-icon="chevron-down"></i></button>
       <div class="cal-top-actions">
-        <button class="cal-icon-btn" id="cal-prev">&#8249;</button>
+        <button class="cal-icon-btn" id="cal-prev"><i data-icon="chevron-left"></i></button>
         <button class="cal-icon-btn cal-today-btn" id="cal-today">Сегодня</button>
-        <button class="cal-icon-btn" id="cal-next">&#8250;</button>
+        <button class="cal-icon-btn" id="cal-next"><i data-icon="chevron-right"></i></button>
       </div>
     </div>
     <div class="cal-month" id="cal-month"></div>
@@ -96,29 +90,13 @@
   </section>
 </main>
 
-<button class="fab" id="btn-add" aria-label="Добавить" hidden>
-  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-    <path d="M12 5v14M5 12h14"/>
-  </svg>
-</button>
+<button class="fab" id="btn-add" aria-label="Добавить" hidden><i data-icon="plus"></i></button>
 
 <nav class="tabbar">
-  <button class="tab active" data-target="projects">
-    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3.5" y="4.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="4.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="14.5" width="7" height="5" rx="1.6"/><rect x="13.5" y="14.5" width="7" height="5" rx="1.6"/></svg>
-    <span>Проекты</span>
-  </button>
-  <button class="tab" data-target="tasks">
-    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5 6 9.5 9.5 6"/><path d="M4 16.5 6 18.5 9.5 15"/><path d="M12.5 7.5H20M12.5 16.5H20"/></svg>
-    <span>Задачи<i class="tab-badge" id="tab-badge" hidden></i></span>
-  </button>
-  <button class="tab" data-target="calendar">
-    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
-    <span>Календарь</span>
-  </button>
-  <button class="tab" data-target="sessions">
-    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5 9 11l-4.5 4.5"/><path d="M11.5 17.5H19"/></svg>
-    <span>Сессии</span>
-  </button>
+  <button class="tab active" data-target="projects"><i data-icon="grid"></i><span>Проекты</span></button>
+  <button class="tab" data-target="tasks"><i data-icon="tasks"></i><span>Задачи<i class="tab-badge" id="tab-badge" hidden></i></span></button>
+  <button class="tab" data-target="calendar"><i data-icon="calendar"></i><span>Календарь</span></button>
+  <button class="tab" data-target="sessions"><i data-icon="terminal"></i><span>Сессии</span></button>
 </nav>
 
 <!-- Подробности / создание -->
@@ -181,6 +159,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="app.js?v=8"></script>
+<script src="icons.js?v=9"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>
