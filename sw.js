@@ -1,10 +1,17 @@
 // Оболочка кэшируется, данные всегда идут по сети — иначе можно увидеть
 // вчерашний список задач и решить, что всё сделано.
-const CACHE = 'runner-shell-v13';
-const SHELL = ['./', 'index.html', 'styles.css?v=13', 'icons.js?v=13', 'app.js?v=13', 'manifest.webmanifest', 'icon-256.png'];
+const VERSION = 'v14';
+const CACHE = 'runner-shell-' + VERSION;
+const SHELL = ['./', 'index.html', 'styles.css?v=14', 'icons.js?v=14', 'app.js?v=14', 'manifest.webmanifest', 'icon-256.png'];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
+  // берём файлы напрямую с сервера, минуя HTTP-кэш браузера — иначе новая
+  // версия ставится из старых копий и обновление не доезжает
+  event.waitUntil(
+    caches.open(CACHE)
+      .then(cache => cache.addAll(SHELL.map(url => new Request(url, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -12,15 +19,22 @@ self.addEventListener('activate', (event) => {
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ type: 'window' }))
+      .then(clients => clients.forEach(client => client.postMessage({ type: 'updated', version: VERSION })))
   );
 });
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  if (url.pathname.startsWith('/api/') || event.request.method !== 'GET') return;
+  if (url.pathname.startsWith('/api/') || event.request.method !== 'GET' || url.origin !== location.origin) return;
+
+  // страницу всегда перепроверяем на сервере: GitHub Pages кэширует её на 10 минут
+  const request = event.request.mode === 'navigate'
+    ? new Request(event.request, { cache: 'no-cache' })
+    : event.request;
 
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then(response => {
         const copy = response.clone();
         caches.open(CACHE).then(cache => cache.put(event.request, copy)).catch(() => {});
