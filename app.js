@@ -352,8 +352,10 @@ function renderProjects() {
         </div>
         <div class="card-actions">
           <button class="btn btn-run" data-act="launch">Claude</button>
-          ${hasDev ? '<button class="btn btn-narrow" data-act="dev">Dev</button>' : ''}
-          ${project.prodUrl ? `<a class="btn btn-narrow" href="${esc(project.prodUrl)}" target="_blank" rel="noopener">Сайт</a>` : ''}
+          <div class="card-extra">
+            ${hasDev ? '<button class="btn btn-narrow" data-act="dev">Dev</button>' : ''}
+            ${project.prodUrl ? `<a class="btn btn-narrow" href="${esc(project.prodUrl)}" target="_blank" rel="noopener">Сайт</a>` : ''}
+          </div>
         </div>
       </article>
     `;

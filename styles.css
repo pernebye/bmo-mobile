@@ -160,12 +160,19 @@ input:focus, select:focus { border-color: var(--accent); }
 
 .card-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
   margin-top: 12px;
 }
 
+/* Claude одинаковой ширины на всех карточках, сколько бы соседей ни было */
+.card-extra {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .btn {
-  flex: 1;
   padding: 9px 12px;
   border: none;
   border-radius: 9px;
@@ -177,9 +184,24 @@ input:focus, select:focus { border-color: var(--accent); }
 }
 
 .btn:active { background: var(--hover); }
-.btn-run { background: var(--accent); color: #fff; }
+
+.btn-run {
+  flex: 0 0 45%;
+  min-width: 118px;
+  background: var(--accent);
+  color: #fff;
+}
+
 .btn-run:active { background: #6b4ce0; }
-.btn-narrow { flex: 0 0 auto; padding: 9px 14px; color: var(--muted); }
+
+.btn-narrow {
+  flex: 0 0 auto;
+  min-width: 62px;
+  padding: 9px 14px;
+  color: var(--muted);
+  text-align: center;
+  text-decoration: none;
+}
 
 .badge {
   display: inline-block;
