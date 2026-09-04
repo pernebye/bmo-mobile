@@ -3,30 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<meta name="theme-color" content="#0c0c0e" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#f6f6f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b100f" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f2f8f6" media="(prefers-color-scheme: light)">
 <meta name="color-scheme" content="dark light">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Runner">
-<title>Runner</title>
+<meta name="apple-mobile-web-app-title" content="BMO">
+<title>BMO</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=18">
+<link rel="stylesheet" href="styles.css?v=19">
 </head>
 <body>
 
 <!-- Экран входа -->
 <div class="login" id="login" hidden>
   <div class="login-box">
-    <div class="login-logo">
-      <svg viewBox="0 0 512 512" width="44" height="44">
-        <path d="M128,152 L296,256 L128,360" stroke="currentColor" stroke-width="36" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.35"/>
-        <path d="M216,152 L384,256 L216,360" stroke="currentColor" stroke-width="44" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <h1>Runner</h1>
+    <div class="login-logo"><img src="icon-256.png" alt="BMO" width="72" height="72" style="border-radius:18px"></div>
+    <h1>BMO</h1>
     <p class="login-hint">Введи код из Google Authenticator — он меняется каждые 30 секунд.</p>
 
     <input type="text" id="login-code" inputmode="numeric" autocomplete="one-time-code"
@@ -177,7 +172,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=18"></script>
-<script src="app.js?v=18"></script>
+<script src="icons.js?v=19"></script>
+<script src="app.js?v=19"></script>
 </body>
 </html>

@@ -424,7 +424,7 @@ function renderProjects() {
           ${project.status === 'active' ? '<span class="badge badge-active">в работе</span>' : ''}
         </div>
         <div class="card-actions">
-          <button class="btn btn-run" data-act="launch"><i data-icon="claude"></i>Claude</button>
+          <button class="btn btn-run" data-act="launch"><i data-icon="claude"></i>BMO</button>
           <div class="card-extra">
             ${hasDev ? '<button class="btn btn-narrow btn-icon-only" data-act="dev" title="Dev-серверы"><i data-icon="play"></i></button>' : ''}
             ${project.prodUrl ? `<a class="btn btn-narrow btn-icon-only" href="${esc(project.prodUrl)}" target="_blank" rel="noopener" title="Сайт"><i data-icon="globe"></i></a>` : ''}
@@ -817,7 +817,7 @@ const sheet = {
   renderComments(comments) {
     document.getElementById('f-comment-list').innerHTML = comments.map(c => `
       <li class="comment${c.mine ? ' is-mine' : ''}">
-        <div class="comment-head"><span class="comment-author${c.author === 'claude' ? ' is-claude' : ''}">${c.author === 'claude' ? `${ICONS.claude}Claude · ${esc((c.session || '').slice(0, 8) || '?')}` : (c.mine ? 'Вы' : esc(c.author || '—'))}</span><span>${humanStamp(c.at)}</span>${c.pending ? '<span class="comment-pending">отправляется…</span>' : ''}</div>
+        <div class="comment-head"><span class="comment-author${c.author === 'claude' ? ' is-claude' : ''}">${c.author === 'claude' ? `${ICONS.claude}BMO · ${esc((c.session || '').slice(0, 8) || '?')}` : (c.mine ? 'Вы' : esc(c.author || '—'))}</span><span>${humanStamp(c.at)}</span>${c.pending ? '<span class="comment-pending">отправляется…</span>' : ''}</div>
         <div class="comment-text">${esc(c.text)}</div>
       </li>`).join('');
     document.getElementById('f-comments-count').textContent = comments.length || '';
@@ -945,7 +945,7 @@ document.getElementById('projects-list').addEventListener('click', async (e) => 
   try {
     if (action === 'launch') {
       await api('/api/launch', 'POST', { projectId });
-      toast(`Claude запускается: ${name}`);
+      toast(`BMO запускается: ${name}`);
     } else if (action === 'dev') {
       await api('/api/dev', 'POST', { projectId });
       toast(`Dev-серверы: ${name}`);
