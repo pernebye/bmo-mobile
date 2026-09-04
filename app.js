@@ -3,6 +3,7 @@
 const KEY_TOKEN = 'runner-token';
 const KEY_API = 'runner-api';
 const KEY_STATE = 'runner-state';
+const KEY_FAVICONS = 'runner-favicons';
 
 // Приложение живёт на постоянном адресе GitHub Pages, а компьютер каждый раз
 // получает новый адрес туннеля — он публикуется в origin.json рядом с приложением.
@@ -20,8 +21,32 @@ const state = {
   sheet: { kind: 'task', item: null, steps: [] },
   // сколько выполненных раскрыто внизу списка: 3, затем «ещё 5» сколько угодно раз
   doneLimit: 3,
+  favicons: {},
   offline: false
 };
+
+// иконки проектов живут в localStorage: без сети карточки всё равно с картинками
+try { state.favicons = (JSON.parse(localStorage.getItem(KEY_FAVICONS) || 'null') || {}).icons || {}; } catch { state.favicons = {}; }
+
+async function loadFavicons(force) {
+  let cachedAt = 0;
+  try { cachedAt = (JSON.parse(localStorage.getItem(KEY_FAVICONS) || 'null') || {}).at || 0; } catch {}
+  const missing = state.projects.some(p => !(p.id in state.favicons));
+  if (!force && !missing && Date.now() - cachedAt < 6 * 3600e3) return;
+  try {
+    const res = await api('/api/favicons');
+    state.favicons = res.icons || {};
+    try { localStorage.setItem(KEY_FAVICONS, JSON.stringify({ at: Date.now(), icons: state.favicons })); } catch {}
+    renderProjects();
+    renderSessions();
+  } catch {}
+}
+
+function avatarHtml(project, color, name) {
+  const icon = project && state.favicons[project.id];
+  if (icon) return `<span class="avatar avatar-img"><img src="${icon}" alt=""></span>`;
+  return `<span class="avatar" style="background:${esc(color)}">${esc(initial(name))}</span>`;
+}
 
 async function resolveApi(fresh) {
   if (!location.origin.includes('github.io')) return '';
@@ -281,6 +306,7 @@ async function load(silent) {
     applyState(data);
     try { localStorage.setItem(KEY_STATE, JSON.stringify({ data, at: Date.now() })); } catch {}
     setOffline(false);
+    loadFavicons();
   } catch (err) {
     if (err.message === 'unauthorized') return;
     // компьютер выключен или туннель упал: показываем последнее известное, но ничего не даём менять
@@ -416,7 +442,7 @@ function renderProjects() {
     return `
       <article class="card" data-project="${esc(project.id)}">
         <div class="card-head">
-          <span class="avatar" style="background:${esc(colorFor(project))}">${esc(initial(project.name))}</span>
+          ${avatarHtml(project, colorFor(project), project.name)}
           <div class="card-titles">
             <div class="card-name">${esc(project.name)}</div>
             <div class="card-sub">${ago(lastTouch(project))}${tasks ? ` · ${tasks} задач` : ''}</div>
@@ -664,7 +690,7 @@ function renderSessions() {
   list.innerHTML = state.sessions.map(session => `
     <article class="card" data-session="${esc(session.sessionId)}">
       <div class="card-head">
-        <span class="avatar" style="background:${esc(session.tabColor || '#3a3a42')}">${esc(initial(session.projectName))}</span>
+        ${avatarHtml(state.projects.find(p => p.id === session.projectId), session.tabColor || '#3a3a42', session.projectName)}
         <div class="card-titles">
           <div class="card-name">${esc(session.projectName)}</div>
           <div class="card-sub">${ago(session.at)} · ${esc(session.prompt.slice(0, 60))}</div>

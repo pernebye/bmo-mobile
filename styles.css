@@ -1113,3 +1113,7 @@ body.sheet-open {
 /* счётчик задач — в правом верхнем углу иконки вкладки, а не после подписи */
 .tab { position: relative; }
 .tab-badge { top: 4px; right: auto; left: calc(50% + 7px); }
+
+/* иконки проектов вместо буквы, когда они найдены */
+.avatar-img { background: var(--elevated); overflow: hidden; }
+.avatar-img img { width: 100%; height: 100%; object-fit: contain; display: block; }
