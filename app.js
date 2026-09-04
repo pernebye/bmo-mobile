@@ -800,6 +800,11 @@ const sheet = {
       el.disabled = !!external;
     });
     body.querySelectorAll('#f-check-list input[type="checkbox"]').forEach(el => { el.disabled = !!external; });
+    // у чужой задачи без срока и без шагов пустые поля показывать нечего
+    const item = state.sheet.item;
+    document.getElementById('f-date').closest('.f-row').hidden = !!external && !item?.due;
+    document.querySelector('.f-checklist').hidden = !!external && !state.sheet.steps.length;
+    document.getElementById('f-priority').closest('.switch-row').hidden = !!external;
     const banner = document.getElementById('f-external');
     banner.hidden = !external;
     if (!external) return;
