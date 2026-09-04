@@ -817,7 +817,7 @@ const sheet = {
   renderComments(comments) {
     document.getElementById('f-comment-list').innerHTML = comments.map(c => `
       <li class="comment${c.mine ? ' is-mine' : ''}">
-        <div class="comment-head"><span class="comment-author">${c.mine ? 'Вы' : esc(c.author || '—')}</span><span>${humanStamp(c.at)}</span>${c.pending ? '<span class="comment-pending">отправляется…</span>' : ''}</div>
+        <div class="comment-head"><span class="comment-author${c.author === 'claude' ? ' is-claude' : ''}">${c.author === 'claude' ? `${ICONS.claude}Claude · ${esc((c.session || '').slice(0, 8) || '?')}` : (c.mine ? 'Вы' : esc(c.author || '—'))}</span><span>${humanStamp(c.at)}</span>${c.pending ? '<span class="comment-pending">отправляется…</span>' : ''}</div>
         <div class="comment-text">${esc(c.text)}</div>
       </li>`).join('');
     document.getElementById('f-comments-count').textContent = comments.length || '';

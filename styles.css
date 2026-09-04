@@ -1106,3 +1106,6 @@ body.sheet-open {
   font-size: 14px;
   font-weight: 500;
 }
+
+.comment-author.is-claude { display: inline-flex; align-items: center; gap: 5px; }
+.comment-author.is-claude svg { width: 11px; height: 11px; color: var(--accent); }
