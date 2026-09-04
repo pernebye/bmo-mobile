@@ -1,16 +1,16 @@
-// Runner PWA — проекты, задачи, календарь и сессии Claude с телефона.
+// BMO PWA — проекты, задачи, календарь и сессии Claude с телефона.
 
-const KEY_TOKEN = 'runner-token';
-const KEY_API = 'runner-api';
-const KEY_STATE = 'runner-state';
-const KEY_FAVICONS = 'runner-favicons';
+const KEY_TOKEN = 'bmo-token';
+const KEY_API = 'bmo-api';
+const KEY_STATE = 'bmo-state';
+const KEY_FAVICONS = 'bmo-favicons';
 
 // Приложение живёт на постоянном адресе GitHub Pages, а компьютер каждый раз
 // получает новый адрес туннеля — он публикуется в origin.json рядом с приложением.
-const ORIGIN_POINTER = 'https://raw.githubusercontent.com/pernebye/runner-mobile/main/origin.json';
+const ORIGIN_POINTER = 'https://raw.githubusercontent.com/pernebye/bmo-mobile/main/origin.json';
 // raw отдаётся через CDN и минут пять помнит старый адрес; когда связь потеряна,
 // спрашиваем напрямую у API GitHub, чтобы не ждать протухания кэша
-const ORIGIN_FRESH = 'https://api.github.com/repos/pernebye/runner-mobile/contents/origin.json';
+const ORIGIN_FRESH = 'https://api.github.com/repos/pernebye/bmo-mobile/contents/origin.json';
 
 let apiBase = location.origin.includes('github.io') ? (localStorage.getItem(KEY_API) || '') : '';
 
@@ -1235,11 +1235,11 @@ if ('serviceWorker' in navigator) {
   }).catch(() => {});
   navigator.serviceWorker.addEventListener('message', (e) => {
     if (e.data?.type !== 'updated') return;
-    const known = localStorage.getItem('runner-sw-version');
-    localStorage.setItem('runner-sw-version', e.data.version);
+    const known = localStorage.getItem('bmo-sw-version');
+    localStorage.setItem('bmo-sw-version', e.data.version);
     // первая установка — просто запоминаем; смена версии — перезагружаем с уведомлением
     if (known && known !== e.data.version) {
-      toast(`Runner обновлён до ${e.data.version}`);
+      toast(`BMO обновлён до ${e.data.version}`);
       setTimeout(() => location.reload(), 900);
     }
   });
