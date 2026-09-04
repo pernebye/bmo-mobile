@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=15">
+<link rel="stylesheet" href="styles.css?v=16">
 </head>
 <body>
 
@@ -118,6 +118,7 @@
   </div>
   <div class="sheet-body">
   <input type="text" id="f-title" placeholder="Что сделать" autocomplete="off">
+  <div class="f-external" id="f-external" hidden><span id="f-external-text"></span><a id="f-external-link" target="_blank" rel="noopener">Открыть <i data-icon="link"></i></a></div>
 
   <div class="f-row">
     <label class="f-field">Дата<input type="date" id="f-date"></label>
@@ -163,12 +164,20 @@
     <input type="text" id="f-check-add" placeholder="+ шаг" autocomplete="off">
   </div>
   <textarea id="f-notes" rows="3" placeholder="Заметки"></textarea>
+  <div class="f-comments" id="f-comments" data-only="task" hidden>
+    <div class="f-check-head"><span>Комментарии</span><span id="f-comments-count"></span></div>
+    <ul class="comment-list" id="f-comment-list"></ul>
+    <div class="comment-form">
+      <textarea id="f-comment-add" rows="1" placeholder="Комментарий"></textarea>
+      <button type="button" class="comment-send" id="f-comment-send">Отправить</button>
+    </div>
+  </div>
   </div>
 </div>
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=15"></script>
-<script src="app.js?v=15"></script>
+<script src="icons.js?v=16"></script>
+<script src="app.js?v=16"></script>
 </body>
 </html>

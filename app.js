@@ -202,6 +202,14 @@ function dayDiff(value) {
   return Math.round((a - b) / 86400000);
 }
 
+const SOURCE_TITLES = { trello: 'Trello', ozimiz: 'Админка Ozimiz' };
+
+// «4 сент., 12:35» для комментариев
+function humanStamp(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
 function humanDue(value) {
   const d = toDate(value, false);
   if (!d) return '';
@@ -507,6 +515,11 @@ function taskRow(task) {
     const done = steps.filter(st => st.done).length;
     meta.push(`<span class="task-steps${done === steps.length ? ' complete' : ''}"><i style="--p:${Math.round(done / steps.length * 100)}%"></i>${done}/${steps.length}</span>`);
   }
+  if (task.external) {
+    meta.push(`<span class="task-source">${esc(SOURCE_TITLES[task.external.kind] || task.external.kind)}${task.external.list ? ` · ${esc(task.external.list)}` : ''}</span>`);
+  }
+  const comments = (task.comments || []).length;
+  if (comments && !isDone) meta.push(`<span class="task-comments">${ICONS.chat}${comments}</span>`);
   return `
     <article class="task${isOverdue(task) ? ' overdue' : ''}${isDone ? ' done' : ''}" data-id="${esc(task.id)}">
       <button class="check" data-act="done"></button>
@@ -719,12 +732,19 @@ const sheet = {
     this.syncAllDay();
 
     const done = item && item.status === 'done';
-    document.getElementById('f-delete').hidden = isNew;
+    const external = item?.external || null;
+    document.getElementById('f-delete').hidden = isNew || !!external;
     const doneBtn = document.getElementById('f-done');
     doneBtn.hidden = isNew;
     doneBtn.classList.toggle('is-done', !!done);
     doneBtn.title = done ? 'Вернуть в работу' : (isEvent ? 'Отметить прошедшим' : 'Выполнено');
     document.getElementById('f-save').textContent = isNew ? 'Создать' : 'Сохранить';
+    document.getElementById('f-save').hidden = !!external;
+
+    this.applyExternal(external);
+    document.getElementById('f-comments').hidden = isEvent || isNew;
+    this.renderComments(item?.comments || []);
+    document.getElementById('f-comment-add').value = '';
 
     this.el().hidden = false;
     document.getElementById('sheet-backdrop').hidden = false;
@@ -771,6 +791,50 @@ const sheet = {
     document.getElementById('f-duration-field').hidden = allDay || state.sheet.kind !== 'event';
   },
 
+  // Задача из Trello или админки: поля показываем как есть, править нельзя — источник главнее
+  applyExternal(external) {
+    this.el().classList.toggle('external', !!external);
+    const body = this.el().querySelector('.sheet-body');
+    body.querySelectorAll('input, select, textarea').forEach(el => {
+      if (el.id === 'f-comment-add') return;
+      el.disabled = !!external;
+    });
+    body.querySelectorAll('#f-check-list input[type="checkbox"]').forEach(el => { el.disabled = !!external; });
+    const banner = document.getElementById('f-external');
+    banner.hidden = !external;
+    if (!external) return;
+    const title = SOURCE_TITLES[external.kind] || external.kind;
+    document.getElementById('f-external-text').textContent =
+      `${title}${external.list ? ` › ${external.list}` : ''} — правится там, здесь можно закрыть и прокомментировать`;
+    document.getElementById('f-external-link').href = external.url || '#';
+  },
+
+  renderComments(comments) {
+    document.getElementById('f-comment-list').innerHTML = comments.map(c => `
+      <li class="comment${c.mine ? ' is-mine' : ''}">
+        <div class="comment-head"><span class="comment-author">${c.mine ? 'Вы' : esc(c.author || '—')}</span><span>${humanStamp(c.at)}</span>${c.pending ? '<span class="comment-pending">отправляется…</span>' : ''}</div>
+        <div class="comment-text">${esc(c.text)}</div>
+      </li>`).join('');
+    document.getElementById('f-comments-count').textContent = comments.length || '';
+  },
+
+  async addComment() {
+    const { item } = state.sheet;
+    const box = document.getElementById('f-comment-add');
+    const text = box.value.trim();
+    if (!item || !text || blocked()) return;
+    try {
+      const res = await api('/api/comment', 'POST', { id: item.id, text });
+      if (!res.ok) { toast(res.error || 'Не отправилось'); return; }
+      item.comments = [...(item.comments || []), res.comment];
+      box.value = '';
+      this.renderComments(item.comments);
+      if (res.comment.pending) toast('Уйдёт в трекер через минуту');
+    } catch {
+      toast('Компьютер недоступен');
+    }
+  },
+
   collect() {
     const title = document.getElementById('f-title').value.trim();
     if (!title) { document.getElementById('f-title').focus(); return null; }
@@ -800,7 +864,7 @@ const sheet = {
   },
 
   async save() {
-    if (blocked()) return;
+    if (blocked() || state.sheet.item?.external) return;
     const payload = this.collect();
     if (!payload) return;
     const { kind, item } = state.sheet;
@@ -844,9 +908,10 @@ const sheet = {
 
   async remove() {
     const { item, kind } = state.sheet;
-    if (!item || blocked()) return;
+    if (!item || blocked() || item.external) return;
     try {
-      await api('/api/delete', 'POST', { id: item.id });
+      const res = await api('/api/delete', 'POST', { id: item.id });
+      if (!res.ok) { toast(res.error || 'Не удалось удалить'); return; }
       if (kind === 'event') state.events = state.events.filter(e => e.id !== item.id);
       else state.tasks = state.tasks.filter(t => t.id !== item.id);
       this.close();
@@ -1052,6 +1117,7 @@ sheetEl.addEventListener('touchend', () => {
 document.getElementById('sheet-backdrop').addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 document.getElementById('f-save').addEventListener('click', () => sheet.save());
 document.getElementById('f-done').addEventListener('click', () => sheet.toggleDone());
+document.getElementById('f-comment-send').addEventListener('click', () => sheet.addComment());
 document.getElementById('f-delete').addEventListener('click', () => sheet.remove());
 document.getElementById('f-allday').addEventListener('change', () => sheet.syncAllDay());
 

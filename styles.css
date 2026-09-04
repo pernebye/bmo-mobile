@@ -1046,3 +1046,63 @@ body.sheet-open {
 }
 .sheet-head { position: relative; padding-top: 16px; touch-action: pan-y; }
 .sheet { will-change: transform; }
+
+
+/* задачи из чужих трекеров и комментарии */
+.task-source {
+  display: inline-flex;
+  align-items: center;
+  height: 17px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--elevated);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.task-comments { display: inline-flex; align-items: center; gap: 4px; }
+.task-comments [data-icon] { font-size: 12px; }
+
+.f-external {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--dim);
+}
+
+.f-external a { color: var(--accent); text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.f-external a [data-icon] { font-size: 12px; }
+
+.sheet.external .sheet-body input:disabled, .sheet.external .sheet-body select:disabled, .sheet.external .sheet-body textarea:disabled {
+  opacity: 1;
+  color: var(--text);
+  -webkit-text-fill-color: var(--text);
+}
+
+.sheet.external #f-check-add, .sheet.external .quick-dates, .sheet.external .f-check-list button { display: none; }
+
+.f-comments { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--border); }
+.comment-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.comment-head { display: flex; align-items: baseline; gap: 8px; font-size: 12px; color: var(--dim); }
+.comment-author { font-weight: 600; color: var(--muted); }
+.comment.is-mine .comment-author { color: var(--accent); }
+.comment-pending { font-style: italic; }
+.comment-text { margin-top: 3px; font-size: 14px; line-height: 1.45; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+.comment-form { display: flex; gap: 8px; align-items: flex-end; }
+.comment-form textarea { flex: 1; min-height: 40px; }
+.comment-send {
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 14px;
+  font-weight: 500;
+}
