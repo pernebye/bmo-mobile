@@ -1109,3 +1109,7 @@ body.sheet-open {
 
 .comment-author.is-claude { display: inline-flex; align-items: center; gap: 5px; }
 .comment-author.is-claude svg { width: 11px; height: 11px; color: var(--accent); }
+
+/* счётчик задач — в правом верхнем углу иконки вкладки, а не после подписи */
+.tab { position: relative; }
+.tab-badge { top: 4px; right: auto; left: calc(50% + 7px); }
