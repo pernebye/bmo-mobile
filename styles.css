@@ -1,20 +1,20 @@
 :root {
-  --bg: #0b100f;
-  --surface: #111917;
-  --elevated: #172120;
-  --hover: #1e2a28;
+  --bg: #0c0c0e;
+  --surface: #131316;
+  --elevated: #1a1a1e;
+  --hover: #212126;
   --text: #f0f0f2;
   --muted: #8b8b95;
   --dim: #6e6e78;
   --accent: #63bda4;
   --accent-active: #52ad94;
   --accent-soft: rgba(99, 189, 164, 0.16);
-  --green: #6fd35f;
+  --green: #34c07a;
   --red: #f0554b;
   --red-soft: rgba(240, 85, 75, 0.15);
-  --border: #223030;
-  --line-strong: #2f403e;
-  --bar-bg: rgba(11, 16, 15, 0.92);
+  --border: #26262b;
+  --line-strong: #3a3a42;
+  --bar-bg: rgba(12, 12, 14, 0.92);
   --backdrop: rgba(0, 0, 0, 0.55);
   --shadow: rgba(0, 0, 0, 0.45);
   --on-accent: #fff;
@@ -26,22 +26,22 @@
 /* Тема идёт за системной настройкой телефона */
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #f2f8f6;
+    --bg: #f6f6f7;
     --surface: #ffffff;
-    --elevated: #e9f2ee;
-    --hover: #dfece7;
+    --elevated: #f0f0f2;
+    --hover: #e8e8ec;
     --text: #17171a;
     --muted: #5b5b65;
     --dim: #8a8a94;
     --accent: #3a9a7f;
     --accent-active: #2f8a70;
     --accent-soft: rgba(58, 154, 127, 0.12);
-    --green: #3aa33a;
+    --green: #1f9d5f;
     --red: #d93a30;
     --red-soft: rgba(217, 58, 48, 0.10);
-    --border: #dde8e4;
-    --line-strong: #c3d5cf;
-    --bar-bg: rgba(242, 248, 246, 0.92);
+    --border: #e3e3e7;
+    --line-strong: #cfcfd6;
+    --bar-bg: rgba(246, 246, 247, 0.92);
     --backdrop: rgba(20, 20, 30, 0.35);
     --shadow: rgba(20, 20, 30, 0.18);
   }
