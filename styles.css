@@ -278,10 +278,29 @@ input:focus, select:focus { border-color: var(--accent); }
   background: transparent;
 }
 
-.task.done .check { background: var(--green); border-color: var(--green); }
+.task.done .check { position: relative; background: var(--green); border-color: var(--green); }
+.task.done .check::after {
+  content: '';
+  position: absolute;
+  left: 6px; top: 2.5px;
+  width: 5px; height: 10px;
+  border: solid var(--on-accent);
+  border-width: 0 1.8px 1.8px 0;
+  transform: rotate(45deg);
+}
 .task-body { flex: 1; min-width: 0; }
 .task-title { font-size: 14.5px; line-height: 1.35; }
 .task.done .task-title { color: var(--dim); text-decoration: line-through; }
+
+/* выполненные свёрнуты до строки и приглушены */
+.task.done { padding: 10px 14px; opacity: 0.55; }
+.task.done .task-title { font-size: 14px; }
+.task.done .task-meta { margin-top: 2px; }
+.group-title span { margin-left: 6px; letter-spacing: 0; opacity: 0.7; }
+.more-row { display: flex; gap: 20px; padding: 0 4px 6px; }
+.more-btn { border: none; background: transparent; padding: 6px 0; font-size: 13.5px; color: var(--accent); }
+.more-btn.more-collapse { color: var(--dim); }
+.empty.empty-short { padding: 32px 20px 10px; }
 
 .task-meta {
   display: flex;

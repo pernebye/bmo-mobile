@@ -18,6 +18,8 @@ const state = {
   screen: 'projects', scope: 'all', workspace: '', search: '',
   calCursor: new Date(), calSelected: '',
   sheet: { kind: 'task', item: null, steps: [] },
+  // сколько выполненных раскрыто внизу списка: 3, затем «ещё 5» сколько угодно раз
+  doneLimit: 3,
   offline: false
 };
 
@@ -433,23 +435,46 @@ function scopeTasks(scope) {
   if (scope === 'today') return open.filter(t => t.due && dayDiff(t.due) <= 0);
   if (scope === 'week') return open.filter(t => t.due && dayDiff(t.due) <= 7);
   if (scope === 'overdue') return open.filter(isOverdue);
-  if (scope === 'done') return state.tasks.filter(t => t.status === 'done');
   return open;
+}
+
+// выполненные, уместные на текущей странице: «сегодня» — закрытые сегодня или со сроком
+// на сегодня, «неделя» — закрытые за последние семь дней, «просрочено» — закрытые после срока
+function doneTasks() {
+  const done = state.tasks.filter(t => t.status === 'done');
+  const daysAgo = (t) => t.doneAt ? -dayDiff(t.doneAt) : Infinity;
+  let picked = done;
+  if (state.scope === 'today') picked = done.filter(t => daysAgo(t) === 0 || (t.due && dayDiff(t.due) === 0));
+  else if (state.scope === 'week') picked = done.filter(t => daysAgo(t) <= 7);
+  else if (state.scope === 'overdue') picked = done.filter(t => t.due && t.doneAt && new Date(t.doneAt) > toDate(t.due));
+  return picked.sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
 }
 
 function renderTasks() {
   const list = document.getElementById('tasks-list');
   const tasks = scopeTasks(state.scope).sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
-  if (!tasks.length) {
-    list.innerHTML = `<div class="empty">${state.scope === 'done' ? 'Выполненных пока нет' : 'Задач нет — чисто'}</div>`;
+  const done = doneTasks();
+  if (!tasks.length && !done.length) {
+    list.innerHTML = '<div class="empty">Задач нет — чисто</div>';
     return;
   }
 
-  if (state.scope === 'done') {
-    list.innerHTML = tasks.sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || '')).map(taskRow).join('');
-    return;
+  let html = tasks.length ? openGroups(tasks) : '<div class="empty empty-short">Открытых задач нет</div>';
+  if (done.length) {
+    const shown = done.slice(0, state.doneLimit);
+    const rest = done.length - shown.length;
+    html += `<div class="group-title">Выполнено<span>${done.length}</span></div>` + shown.map(taskRow).join('');
+    if (rest > 0 || state.doneLimit > 3) {
+      html += '<div class="more-row">'
+        + (rest > 0 ? `<button class="more-btn" data-more="more">Ещё ${Math.min(rest, 5)}</button>` : '')
+        + (state.doneLimit > 3 ? `<button class="more-btn more-collapse" data-more="less">Свернуть</button>` : '')
+        + '</div>';
+    }
   }
+  list.innerHTML = html;
+}
 
+function openGroups(tasks) {
   const groups = { overdue: [], today: [], tomorrow: [], week: [], later: [], none: [] };
   for (const task of tasks) {
     if (!task.due) groups.none.push(task);
@@ -460,7 +485,7 @@ function renderTasks() {
     else groups.later.push(task);
   }
   const titles = { overdue: 'Просрочено', today: 'Сегодня', tomorrow: 'Завтра', week: 'На неделе', later: 'Позже', none: 'Без срока' };
-  list.innerHTML = Object.entries(groups)
+  return Object.entries(groups)
     .filter(([, items]) => items.length)
     .map(([key, items]) => `
       <div class="group-title${key === 'overdue' ? ' alert' : ''}">${titles[key]}</div>
@@ -469,24 +494,26 @@ function renderTasks() {
 }
 
 function taskRow(task) {
+  // выполненная задача сворачивается до заголовка и проекта
+  const isDone = task.status === 'done';
   const project = state.projects.find(p => p.id === task.projectId);
   const meta = [];
-  if (task.due) meta.push(`<span class="task-due">${humanDue(task.due)}</span>`);
+  if (task.due && !isDone) meta.push(`<span class="task-due">${humanDue(task.due)}</span>`);
   if (project) meta.push(`<span>${esc(project.name)}</span>`);
   const stage = project && (project.milestones || []).find(s => s.id === task.milestoneId);
-  if (stage) meta.push(`<span class="task-stage">${esc(stage.title)}</span>`);
+  if (stage && !isDone) meta.push(`<span class="task-stage">${esc(stage.title)}</span>`);
   const steps = task.checklist || [];
-  if (steps.length) {
+  if (steps.length && !isDone) {
     const done = steps.filter(st => st.done).length;
     meta.push(`<span class="task-steps${done === steps.length ? ' complete' : ''}"><i style="--p:${Math.round(done / steps.length * 100)}%"></i>${done}/${steps.length}</span>`);
   }
   return `
-    <article class="task${isOverdue(task) ? ' overdue' : ''}${task.status === 'done' ? ' done' : ''}" data-id="${esc(task.id)}">
+    <article class="task${isOverdue(task) ? ' overdue' : ''}${isDone ? ' done' : ''}" data-id="${esc(task.id)}">
       <button class="check" data-act="done"></button>
       <div class="task-body" data-act="open">
-        <div class="task-title">${task.priority === 'high' ? '<span class="task-flag">● </span>' : ''}${esc(task.title)}</div>
+        <div class="task-title">${task.priority === 'high' && !isDone ? '<span class="task-flag">● </span>' : ''}${esc(task.title)}</div>
         ${meta.length ? `<div class="task-meta">${meta.join('')}</div>` : ''}
-        ${task.notes ? `<div class="task-notes">${esc(task.notes)}</div>` : ''}
+        ${task.notes && !isDone ? `<div class="task-notes">${esc(task.notes)}</div>` : ''}
       </div>
     </article>
   `;
@@ -497,8 +524,7 @@ function renderCounts() {
     all: scopeTasks('all').length,
     today: scopeTasks('today').length,
     week: scopeTasks('week').length,
-    overdue: scopeTasks('overdue').length,
-    done: scopeTasks('done').length
+    overdue: scopeTasks('overdue').length
   };
   document.querySelectorAll('#task-chips .chip').forEach(chip => {
     const badge = chip.querySelector('span');
@@ -873,6 +899,12 @@ document.getElementById('sessions-list').addEventListener('click', async (e) => 
 });
 
 document.getElementById('tasks-list').addEventListener('click', async (e) => {
+  const more = e.target.closest('[data-more]');
+  if (more) {
+    state.doneLimit = more.dataset.more === 'less' ? 3 : state.doneLimit + 5;
+    renderTasks();
+    return;
+  }
   const row = e.target.closest('[data-id]');
   if (!row) return;
   const task = state.tasks.find(t => t.id === row.dataset.id);
@@ -953,6 +985,7 @@ document.getElementById('task-chips').addEventListener('click', (e) => {
   const chip = e.target.closest('.chip');
   if (!chip) return;
   state.scope = chip.dataset.scope;
+  state.doneLimit = 3;
   document.querySelectorAll('#task-chips .chip').forEach(c => c.classList.toggle('active', c === chip));
   renderTasks();
 });

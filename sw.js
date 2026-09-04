@@ -1,8 +1,8 @@
 // Оболочка кэшируется, данные всегда идут по сети — иначе можно увидеть
 // вчерашний список задач и решить, что всё сделано.
-const VERSION = 'v14';
+const VERSION = 'v15';
 const CACHE = 'runner-shell-' + VERSION;
-const SHELL = ['./', 'index.html', 'styles.css?v=14', 'icons.js?v=14', 'app.js?v=14', 'manifest.webmanifest', 'icon-256.png'];
+const SHELL = ['./', 'index.html', 'styles.css?v=15', 'icons.js?v=15', 'app.js?v=15', 'manifest.webmanifest', 'icon-256.png'];
 
 self.addEventListener('install', (event) => {
   // берём файлы напрямую с сервера, минуя HTTP-кэш браузера — иначе новая
