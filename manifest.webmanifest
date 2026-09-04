@@ -1,7 +1,7 @@
 {
   "name": "BMO",
   "short_name": "BMO",
-  "description": "Проекты, задачи и сессии BMO с телефона",
+  "description": "Проекты, задачи и сессии Claude с телефона",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
