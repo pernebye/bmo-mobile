@@ -29,14 +29,16 @@ const state = {
 try { state.favicons = (JSON.parse(localStorage.getItem(KEY_FAVICONS) || 'null') || {}).icons || {}; } catch { state.favicons = {}; }
 
 async function loadFavicons(force) {
-  let cachedAt = 0;
-  try { cachedAt = (JSON.parse(localStorage.getItem(KEY_FAVICONS) || 'null') || {}).at || 0; } catch {}
+  let cached = {};
+  try { cached = JSON.parse(localStorage.getItem(KEY_FAVICONS) || 'null') || {}; } catch {}
   const missing = state.projects.some(p => !(p.id in state.favicons));
-  if (!force && !missing && Date.now() - cachedAt < 6 * 3600e3) return;
+  // сервер присылает слепок «какой файл у какого проекта» — сменилась иконка, перечитываем
+  const stale = state.faviconsVersion && cached.version !== state.faviconsVersion;
+  if (!force && !missing && !stale && Date.now() - (cached.at || 0) < 6 * 3600e3) return;
   try {
     const res = await api('/api/favicons');
     state.favicons = res.icons || {};
-    try { localStorage.setItem(KEY_FAVICONS, JSON.stringify({ at: Date.now(), icons: state.favicons })); } catch {}
+    try { localStorage.setItem(KEY_FAVICONS, JSON.stringify({ at: Date.now(), version: state.faviconsVersion || '', icons: state.favicons })); } catch {}
     renderProjects();
     renderSessions();
   } catch {}
@@ -367,7 +369,8 @@ function applyState(data) {
     tasks: data.tasks || [],
     events: data.events || [],
     sessions: data.sessions || [],
-    activity: data.activity || {}
+    activity: data.activity || {},
+    faviconsVersion: data.faviconsVersion || ''
   });
   renderAll();
 }
