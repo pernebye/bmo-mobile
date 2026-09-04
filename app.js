@@ -230,6 +230,7 @@ function dayDiff(value) {
 }
 
 const SOURCE_TITLES = { trello: 'Trello', ozimiz: 'Админка Ozimiz' };
+const STAGE_TITLES = { backlog: 'Бэклог', todo: 'К выполнению', progress: 'В работе', review: 'На проверке', done: 'Готово' };
 
 // «4 сент., 12:35» для комментариев
 function humanStamp(iso) {
@@ -535,6 +536,8 @@ function taskRow(task) {
   const isDone = task.status === 'done';
   const project = state.projects.find(p => p.id === task.projectId);
   const meta = [];
+  const taskStage = task.stage || 'todo';
+  if (!isDone && taskStage !== 'todo') meta.push(`<span class="task-stage-pill is-${taskStage}">${STAGE_TITLES[taskStage]}</span>`);
   if (task.due && !isDone) meta.push(`<span class="task-due">${humanDue(task.due)}</span>`);
   if (project) meta.push(`<span>${esc(project.name)}</span>`);
   const stage = project && (project.milestones || []).find(s => s.id === task.milestoneId);
@@ -757,6 +760,7 @@ const sheet = {
     document.getElementById('f-category').value = item?.category || 'work';
     document.getElementById('f-location').value = item?.location || '';
     document.getElementById('f-priority').checked = item?.priority === 'high';
+    document.getElementById('f-stage').value = item?.stage || (item?.status === 'done' ? 'done' : 'todo');
     document.getElementById('f-notes').value = item?.notes || '';
     this.syncAllDay();
 
@@ -825,7 +829,8 @@ const sheet = {
     this.el().classList.toggle('external', !!external);
     const body = this.el().querySelector('.sheet-body');
     body.querySelectorAll('input, select, textarea').forEach(el => {
-      if (el.id === 'f-comment-add') return;
+      // у чужой задачи можно менять только стадию и писать комментарии
+      if (el.id === 'f-comment-add' || el.id === 'f-stage') return;
       el.disabled = !!external;
     });
     body.querySelectorAll('#f-check-list input[type="checkbox"]').forEach(el => { el.disabled = !!external; });
@@ -892,6 +897,7 @@ const sheet = {
       title, projectId, notes,
       due: date ? (time ? `${date}T${time}` : date) : '',
       priority: document.getElementById('f-priority').checked ? 'high' : 'normal',
+      stage: document.getElementById('f-stage').value,
       milestoneId: document.getElementById('f-milestone').value,
       checklist: state.sheet.steps.filter(st => st.text.trim()).map(st => ({ id: st.id, text: st.text.trim(), done: !!st.done }))
     };
@@ -1152,6 +1158,20 @@ document.getElementById('sheet-backdrop').addEventListener('touchmove', (e) => e
 document.getElementById('f-save').addEventListener('click', () => sheet.save());
 document.getElementById('f-done').addEventListener('click', () => sheet.toggleDone());
 document.getElementById('f-comment-send').addEventListener('click', () => sheet.addComment());
+// у задачи из трекера стадия применяется сразу — кнопки «сохранить» у неё нет
+document.getElementById('f-stage').addEventListener('change', async (e) => {
+  const { item } = state.sheet;
+  if (!item?.external || blocked()) return;
+  try {
+    const res = await api('/api/update', 'POST', { id: item.id, patch: { stage: e.target.value } });
+    if (!res.ok) { toast(res.error || 'Не сохранилось'); return; }
+    Object.assign(item, res.item || {});
+    toast(`${STAGE_TITLES[e.target.value]} — уйдёт в трекер через минуту`);
+    renderAll();
+  } catch {
+    toast('Компьютер недоступен');
+  }
+});
 document.getElementById('f-delete').addEventListener('click', () => sheet.remove());
 document.getElementById('f-allday').addEventListener('change', () => sheet.syncAllDay());
 

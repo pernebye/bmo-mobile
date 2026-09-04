@@ -1117,3 +1117,10 @@ body.sheet-open {
 /* иконки проектов вместо буквы, когда они найдены */
 .avatar-img { background: var(--elevated); overflow: hidden; }
 .avatar-img img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+/* стадии задач */
+.task-stage-pill { display: inline-flex; align-items: center; height: 17px; padding: 0 7px; border-radius: 999px; background: var(--elevated); color: var(--muted); font-size: 11px; font-weight: 500; white-space: nowrap; }
+.task-stage-pill.is-progress { background: var(--accent-soft); color: var(--accent); }
+.task-stage-pill.is-review { background: rgba(224, 163, 62, 0.16); color: #d9a13c; }
+.task-stage-pill.is-backlog { color: var(--dim); }
+.sheet.external #f-stage:not(:disabled) { opacity: 1; }

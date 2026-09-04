@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=25">
+<link rel="stylesheet" href="styles.css?v=26">
 </head>
 <body>
 
@@ -152,6 +152,15 @@
 
   <label class="f-field" data-only="task" id="f-milestone-field" hidden>Этап проекта<select id="f-milestone"><option value="">Без этапа</option></select></label>
   <input type="text" id="f-location" placeholder="Где — ссылка или адрес" data-only="event" autocomplete="off">
+  <label class="f-field" data-only="task">Стадия
+    <select id="f-stage">
+      <option value="backlog">Бэклог</option>
+      <option value="todo">К выполнению</option>
+      <option value="progress">В работе</option>
+      <option value="review">На проверке</option>
+      <option value="done">Готово</option>
+    </select>
+  </label>
   <label class="switch-row" data-only="task"><span>Важная</span><input type="checkbox" id="f-priority"></label>
   <div class="f-checklist" data-only="task">
     <div class="f-check-head"><span>Чек-лист</span><span id="f-check-progress"></span></div>
@@ -172,7 +181,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=25"></script>
-<script src="app.js?v=25"></script>
+<script src="icons.js?v=26"></script>
+<script src="app.js?v=26"></script>
 </body>
 </html>
