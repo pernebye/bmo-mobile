@@ -1124,3 +1124,39 @@ body.sheet-open {
 .task-stage-pill.is-review { background: rgba(224, 163, 62, 0.16); color: #d9a13c; }
 .task-stage-pill.is-backlog { color: var(--dim); }
 .sheet.external #f-stage:not(:disabled) { opacity: 1; }
+
+
+/* Экран входа: фон и мордочка BMO, как на экране загрузки десктопа */
+.login { background: #63bda4; color: #082729; }
+.login-box { gap: 14px; }
+
+.login-face {
+  width: min(70vw, 250px);
+  height: auto;
+  display: block;
+  margin: 0 auto 4px;
+  filter: drop-shadow(0 12px 28px rgba(8, 39, 41, 0.16));
+}
+
+.bmo-eye { transform-box: fill-box; transform-origin: center; animation: bmoBlink 4.2s ease-in-out infinite; }
+.bmo-eye.right { animation-delay: 0.06s; }
+.bmo-mouth { transform-box: fill-box; transform-origin: center top; transition: transform 0.25s ease; }
+.login.is-typing .bmo-mouth { transform: scaleY(0.55); }
+.login.is-happy .bmo-mouth { transform: scaleY(1.35); }
+.login.is-sad .bmo-mouth { transform: scaleY(0.2); }
+.login.is-sad .bmo-eye { animation: none; transform: scaleY(0.35); }
+.login.is-sad .login-face { animation: bmoShake 0.45s ease; }
+@keyframes bmoBlink { 0%, 91%, 100% { transform: scaleY(1); } 94% { transform: scaleY(0.08); } }
+@keyframes bmoShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(9px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(4px); } }
+
+.login-box h1 { color: #082729; letter-spacing: 4px; margin-left: 4px; }
+.login .login-hint { color: rgba(8, 39, 41, 0.72); }
+.login #login-code { background: #d6ffdd; border: 2px solid #082729; border-radius: 14px; color: #082729; }
+.login #login-code::placeholder { color: rgba(8, 39, 41, 0.35); }
+.login #login-code:focus { border-color: #082729; box-shadow: 0 0 0 4px rgba(8, 39, 41, 0.12); }
+.login .primary { background: #082729; color: #d6ffdd; }
+.login .primary:active { background: #0f3a3c; }
+.login .login-scan { border-color: rgba(8, 39, 41, 0.35); color: #082729; }
+.login .login-scan:active { background: rgba(8, 39, 41, 0.08); }
+.login .login-note { color: rgba(8, 39, 41, 0.7); }
+.login .login-note.error { color: #8c0e35; font-weight: 500; }

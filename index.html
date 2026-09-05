@@ -13,14 +13,25 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=26">
+<link rel="stylesheet" href="styles.css?v=27">
 </head>
 <body>
 
 <!-- Экран входа -->
 <div class="login" id="login" hidden>
   <div class="login-box">
-    <div class="login-logo"><img src="icon-256.png" alt="BMO" width="72" height="72" style="border-radius:18px"></div>
+    <svg class="login-face" viewBox="0 0 224 178" aria-hidden="true">
+      <rect x="4" y="4" width="216" height="132" rx="20" fill="#d6ffdd" stroke="#082729" stroke-width="4"/>
+      <circle class="bmo-eye" cx="64" cy="54" r="6" fill="#082729"/>
+      <circle class="bmo-eye right" cx="160" cy="54" r="6" fill="#082729"/>
+      <g class="bmo-mouth">
+        <path d="M86 80 Q112 108 138 80 Z" fill="#68fa73" stroke="#082729" stroke-width="4" stroke-linejoin="round"/>
+        <path d="M92 82 Q112 90 132 82 Z" fill="#ffffff"/>
+      </g>
+      <rect x="22" y="152" width="100" height="13" rx="3.5" fill="#082729"/>
+      <path d="M146 160 h14 M153 153 v14" stroke="#fde543" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="194" cy="162" r="8" fill="#f60151"/>
+    </svg>
     <h1>BMO</h1>
     <p class="login-hint">Введи код из Google Authenticator — он меняется каждые 30 секунд.</p>
 
@@ -181,7 +192,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=26"></script>
-<script src="app.js?v=26"></script>
+<script src="icons.js?v=27"></script>
+<script src="app.js?v=27"></script>
 </body>
 </html>

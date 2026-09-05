@@ -110,6 +110,14 @@ async function api(path, method = 'GET', body) {
 
 // --- вход ---
 
+// настроение BMO на экране входа: сосредоточен, пока печатаешь; расстроен от неверного кода; рад входу
+function loginMood(mood) {
+  const login = document.getElementById('login');
+  login.classList.remove('is-typing', 'is-sad', 'is-happy');
+  if (mood) login.classList.add(`is-${mood}`);
+  if (mood === 'sad') setTimeout(() => login.classList.remove('is-sad'), 800);
+}
+
 function showLogin(message) {
   const note = document.getElementById('login-note');
   if (message) {
@@ -142,17 +150,21 @@ async function submitCode(raw) {
     if (!data.token) {
       note.textContent = data.error || 'Код не подошёл';
       note.classList.add('error');
+      loginMood('sad');
       return false;
     }
     token = data.token;
     localStorage.setItem(KEY_TOKEN, token);
-    hideLogin();
+    loginMood('happy');
     note.textContent = '';
+    // BMO успевает улыбнуться, прежде чем экран уйдёт
+    setTimeout(hideLogin, 550);
     load();
     return true;
   } catch {
     note.textContent = 'Компьютер недоступен — он должен быть включён';
     note.classList.add('error');
+    loginMood('sad');
     return false;
   }
 }
@@ -1158,6 +1170,7 @@ document.getElementById('sheet-backdrop').addEventListener('touchmove', (e) => e
 document.getElementById('f-save').addEventListener('click', () => sheet.save());
 document.getElementById('f-done').addEventListener('click', () => sheet.toggleDone());
 document.getElementById('f-comment-send').addEventListener('click', () => sheet.addComment());
+document.getElementById('login-code').addEventListener('input', (e) => loginMood(e.target.value.trim() ? 'typing' : null));
 // у задачи из трекера стадия применяется сразу — кнопки «сохранить» у неё нет
 document.getElementById('f-stage').addEventListener('change', async (e) => {
   const { item } = state.sheet;
