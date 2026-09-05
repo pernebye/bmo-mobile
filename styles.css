@@ -406,8 +406,21 @@ input:focus, select:focus { border-color: var(--accent); }
   border-radius: 18px 18px 0 0;
   border-top: 1px solid var(--border);
   animation: rise 220ms ease-out;
-  /* фон шторки заходит под «домашнюю полосу», чтобы снизу не оставалось серой полосы */
+  /* контент не должен налезать на «домашнюю полосу» */
   padding-bottom: var(--safe-bottom);
+}
+
+/* В standalone-PWA fixed-элемент упирается в линию safe-area, а не в физический низ экрана,
+   и под шторкой проглядывает затемнитель — снизу видна серая полоса. Заполняем эту зону
+   фоном шторки: псевдоэлемент уходит ниже её края (если шторка и так внизу — он за экраном). */
+.sheet::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0; right: 0;
+  height: 80px;
+  background: var(--surface);
+  pointer-events: none;
 }
 
 @keyframes rise { from { transform: translateY(100%); } to { transform: translateY(0); } }
