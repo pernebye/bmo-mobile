@@ -834,6 +834,10 @@ textarea {
 
 textarea:focus { border-color: var(--accent); }
 
+/* Заметки растут под свой текст, после лимита прокручиваются внутри поля.
+   flex-shrink: 0 — иначе flex-колонка .sheet-body сжимает textarea до min-height. */
+#f-notes { min-height: 92px; max-height: 45vh; flex-shrink: 0; }
+
 .task-notes {
   margin-top: 4px;
   font-size: 12.5px;
@@ -976,6 +980,12 @@ body.sheet-open {
   overflow: hidden;
   width: 100%;
 }
+
+/* Пока открыта шторка, нижняя навигация и «плюс» не нужны. Прячем их: у таб-бара
+   backdrop-filter, из-за которого на WebKit его полупрозрачная плашка всплывала поверх
+   нижней части шторки и перекрывала поле комментария и кнопки. */
+body.sheet-open .tabbar,
+body.sheet-open .fab { display: none; }
 
 .sheet-head {
   display: flex;

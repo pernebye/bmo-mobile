@@ -726,6 +726,14 @@ function renderSessions() {
 
 // Пока шторка открыта, страница под ней не должна ехать: фиксируем body
 // на текущей прокрутке и возвращаем её при закрытии.
+// textarea подгоняет высоту под содержимое; дальше 45% экрана — прокрутка внутри поля
+function autosize(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  const border = el.offsetHeight - el.clientHeight;  // при border-box высоту надо задавать с учётом рамки
+  el.style.height = Math.min(el.scrollHeight + border, Math.round(window.innerHeight * 0.45)) + 'px';
+}
+
 let lockedScrollY = 0;
 function lockScroll(on) {
   if (on) {
@@ -795,6 +803,11 @@ const sheet = {
     document.getElementById('sheet-backdrop').hidden = false;
     this.el().classList.toggle('readonly', state.offline);
     this.el().querySelector('.sheet-body').scrollTop = 0;
+    // высоту заметок и поля комментария считаем на следующем кадре — на видимой и устоявшейся шторке
+    requestAnimationFrame(() => {
+      autosize(document.getElementById('f-notes'));
+      autosize(document.getElementById('f-comment-add'));
+    });
     lockScroll(true);
     if (isNew) setTimeout(() => document.getElementById('f-title').focus(), 120);
   },
@@ -879,6 +892,7 @@ const sheet = {
       if (!res.ok) { toast(res.error || 'Не отправилось'); return; }
       item.comments = [...(item.comments || []), res.comment];
       box.value = '';
+      autosize(box);
       this.renderComments(item.comments);
       if (res.comment.pending) toast('Уйдёт в трекер через минуту');
     } catch {
@@ -1187,6 +1201,8 @@ document.getElementById('f-stage').addEventListener('change', async (e) => {
 });
 document.getElementById('f-delete').addEventListener('click', () => sheet.remove());
 document.getElementById('f-allday').addEventListener('change', () => sheet.syncAllDay());
+document.getElementById('f-notes').addEventListener('input', (e) => autosize(e.target));
+document.getElementById('f-comment-add').addEventListener('input', (e) => autosize(e.target));
 
 document.getElementById('f-check-add').addEventListener('keydown', (e) => {
   if (e.key !== 'Enter') return;
