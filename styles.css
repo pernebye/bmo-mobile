@@ -52,6 +52,10 @@
 /* у панелей собственный display, поэтому hidden сам по себе их не прячет */
 [hidden] { display: none !important; }
 
+/* В standalone-PWA зону под «домашней полосой» (safe-area) рисует именно html.
+   Без фона там айфон подсвечивает серым — в обычном браузере этого не видно. */
+html { background: var(--bg); }
+
 body {
   background: var(--bg);
   color: var(--text);
@@ -402,6 +406,8 @@ input:focus, select:focus { border-color: var(--accent); }
   border-radius: 18px 18px 0 0;
   border-top: 1px solid var(--border);
   animation: rise 220ms ease-out;
+  /* фон шторки заходит под «домашнюю полосу», чтобы снизу не оставалось серой полосы */
+  padding-bottom: var(--safe-bottom);
 }
 
 @keyframes rise { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -1036,7 +1042,7 @@ body.sheet-open .fab { display: none; }
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: 12px 16px calc(24px + var(--safe-bottom));
+  padding: 12px 16px 24px;
   display: flex;
   flex-direction: column;
   gap: 10px;
