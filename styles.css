@@ -1427,6 +1427,8 @@ body.sheet-open .fab { display: none; }
 .note-line.note-check.done { color: var(--dim); }
 
 /* Панель форматирования — над клавиатурой */
+/* Панель лежит вне слоя заметки: при открытой клавиатуре тот перестаёт быть
+   фиксированным и уезжает вместе с документом, утаскивая панель за собой. */
 .fmt-bar {
   position: absolute;
   left: 10px; right: 10px;
@@ -1437,7 +1439,7 @@ body.sheet-open .fab { display: none; }
   border-radius: 22px;
   background: var(--elevated);
   box-shadow: 0 8px 24px var(--shadow);
-  z-index: 42;
+  z-index: 44;
 }
 
 .fmt-btn {

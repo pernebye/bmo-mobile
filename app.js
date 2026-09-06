@@ -1975,12 +1975,9 @@ function continueList() {
     // без хода прокрутки Safari не уводит экран вверх и шапка заметки остаётся на месте
     root.style.height = viewport.height + 'px';
     root.style.overflow = 'hidden';
-    // Слой заметки не обязан совпадать с видимой областью, поэтому не считаем, а меряем:
-    // ставим в ноль, смотрим, где полоса оказалась, и двигаем на разницу с нижним краем.
-    bar.style.top = '0px';
-    const rect = bar.getBoundingClientRect();
-    const target = viewport.offsetTop + viewport.height - 8 - rect.height;
-    bar.style.top = Math.round(target - rect.top) + 'px';
+    // Панель — ребёнок body, поэтому считаем в координатах документа: pageTop уже
+    // учитывает и прокрутку страницы, и сдвиг видимой области. Так же стоит поиск.
+    bar.style.top = Math.round(viewport.pageTop + viewport.height - bar.offsetHeight - 8) + 'px';
   }
 
   function show() {
