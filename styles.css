@@ -1124,6 +1124,7 @@ body.sheet-open .fab { display: none; }
 .swipe-actions {
   position: absolute;
   top: 0; right: 0; bottom: 0;
+  width: 176px;            /* покой: по 88px на кнопку — хватает самой длинной подписи */
   display: flex;
   overflow: hidden;
   transition: width 200ms ease-out;
@@ -1133,7 +1134,7 @@ body.sheet-open .fab { display: none; }
 
 /* делят открывшуюся полосу поровну: 86px — их размер в покое */
 .swipe-act {
-  flex: 1 1 86px;
+  flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
