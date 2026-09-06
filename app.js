@@ -1376,11 +1376,11 @@ function reflectSearch() {
   const list = document.getElementById('notes-list');
   const showStart = searching && empty;
   list.classList.toggle('faded', showStart);
-  clearTimeout(startReveal);
+  cancelAnimationFrame(startReveal);
   if (showStart) {
     renderSearchStart();
-    // ждём, пока клавиатура доедет и вьюпорт перестанет скакать
-    startReveal = setTimeout(() => start.classList.add('on'), 620);
+    // кадр нужен, чтобы переход пошёл от нуля, а не применился сразу
+    startReveal = requestAnimationFrame(() => start.classList.add('on'));
   } else {
     start.classList.remove('on');
   }
@@ -1779,7 +1779,7 @@ window.addEventListener('scroll', () => {
   // при наборе страницу двигает клавиатура, а не пользователь — заголовок в шапке
   // не показываем, иначе он дублирует крупный заголовок экрана
   document.querySelector('.topbar').classList.toggle('scrolled',
-    window.scrollY > 34 && !document.body.classList.contains('typing'));
+    window.scrollY > 34 && !document.body.classList.contains('searching'));
 }, { passive: true });
 
 // Свайп по строке заметки влево открывает кнопки, как в системных списках iOS.

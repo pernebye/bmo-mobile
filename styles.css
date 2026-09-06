@@ -1555,8 +1555,6 @@ body.sheet-open { background: var(--surface); }
 /* Корзина заметок */
 /* Список и стартовый экран поиска лежат друг на друге и меняются плавным
    проявлением: пока список не виден, скачок вьюпорта под клавиатуру глазу не заметен. */
-.notes-stack { position: relative; }
-
 /* Заголовок экрана уходит вверх и гаснет вместе со списком: во время поиска
    единственный заголовок — «Разделы», иначе кажется, что экран дёргается. */
 .screen[data-screen="notes"] .screen-title,
@@ -1576,12 +1574,15 @@ body.searching .screen[data-screen="notes"] .screen-sub {
 #notes-list.faded { opacity: 0; pointer-events: none; }
 
 /* разделы проявляются уже после скачка, поэтому его не видно */
+.screen[data-screen="notes"] { position: relative; }
+
+/* начинается там же, где заголовок экрана: он к этому моменту уже погас */
 #search-start {
   position: absolute;
-  top: 0; left: 0; right: 0;
+  top: 2px; left: 0; right: 0;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 420ms ease-out;
+  transition: opacity 380ms ease-out;
 }
 
 #search-start.on { opacity: 1; pointer-events: auto; }
