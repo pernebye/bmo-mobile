@@ -1472,14 +1472,16 @@ const noteEditor = {
     const title = document.getElementById('n-title').value;
     const body = readBody();
     if (!this.id && !title.trim() && !body.trim()) return;   // пустую новую не создаём
-    await this._ensure();
-    if (!this.id) return;
+    const id = await this._ensure();
+    if (!id) return;
     try {
-      const res = await api('/api/note-update', 'POST', { id: this.id, title, body });
+      const res = await api('/api/note-update', 'POST', { id, title, body });
       if (res && res.ok && res.note) {
-        const i = state.notes.findIndex(n => n.id === this.id);
+        const i = state.notes.findIndex(n => n.id === id);
         if (i >= 0) state.notes[i] = res.note;
-        if (this.active) document.getElementById('n-date').textContent = noteDate(res.note.updatedAt);
+        if (this.active && this.id === id) {
+          document.getElementById('n-date').textContent = noteDate(res.note.updatedAt);
+        }
       }
     } catch {}
   },
@@ -1514,8 +1516,11 @@ const noteEditor = {
   },
   async close() {
     clearTimeout(this.saveTimer);
-    await this.save();
+    // save() читает поля синхронно, поэтому прячем экран сразу, не дожидаясь сети:
+    // иначе заметка успевала вернуться на место и только потом уезжала
+    const saving = this.save();
     this._hide();
+    await saving;
     sortNotes();
     renderNotes();
   },
