@@ -385,6 +385,7 @@ input:focus, select:focus { border-color: var(--accent); }
   z-index: 15;
 }
 
+.fab [data-icon] { font-size: 26px; }
 .fab:active { transform: scale(0.94); }
 
 /* Форма */
@@ -1120,21 +1121,21 @@ body.sheet-open .fab { display: none; }
 .note-nav {
   display: flex; align-items: center; gap: 8px;
   padding: calc(var(--safe-top) + 8px) 8px 8px;
-  border-bottom: 1px solid var(--border);
 }
+.note-nav-actions { margin-left: auto; }
 .note-back {
   display: inline-flex; align-items: center; gap: 1px;
   background: none; border: none; color: var(--accent);
   font-family: inherit; font-size: 16px; padding: 4px 4px 4px 2px;
 }
 .note-back [data-icon] { font-size: 24px; }
-.note-nav-title { flex: 1; text-align: center; font-size: 16px; font-weight: 600; color: var(--text); }
 .note-nav-actions { display: flex; gap: 2px; }
 .note-nav-btn {
   width: 40px; height: 40px; border-radius: 10px;
   display: inline-flex; align-items: center; justify-content: center;
   background: none; border: none; color: var(--text);
 }
+.note-nav-btn [data-icon] { font-size: 20px; }
 .note-nav-btn:active { background: var(--elevated); }
 .note-nav-btn.danger:active { color: var(--red); }
 .note-nav-btn.is-pinned { color: var(--accent); }
@@ -1145,7 +1146,12 @@ body.sheet-open .fab { display: none; }
   display: flex; flex-direction: column; gap: 10px;
   padding: 16px 18px 0;
 }
-#n-title { border: none; background: none; padding: 0; font-family: inherit; font-size: 21px; font-weight: 600; color: var(--text); outline: none; }
+.note-date { text-align: center; font-size: 12px; color: var(--dim); }
+#n-title {
+  border: none; background: none; padding: 0; font-family: inherit;
+  font-size: 21px; font-weight: 600; line-height: 1.25; color: var(--text);
+  outline: none; resize: none; overflow: hidden;
+}
 #n-title::placeholder { color: var(--dim); }
 #n-body { flex: 1; min-height: 50vh; border: none; background: none; padding: 0; font-family: inherit; font-size: 15px; line-height: 1.55; color: var(--text); outline: none; resize: none; }
 #n-body::placeholder { color: var(--dim); }

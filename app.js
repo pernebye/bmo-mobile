@@ -1190,6 +1190,24 @@ function sortNotes() {
   state.notes.sort((a, b) => (a.pinned ? 0 : 1) - (b.pinned ? 0 : 1));
 }
 
+function noteDate(iso) {
+  const d = iso ? new Date(iso) : new Date();
+  if (isNaN(d.getTime())) return '';
+  const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  const today = new Date();
+  const sameDay = d.toDateString() === today.toDateString();
+  if (sameDay) return time;
+  const date = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  return `${date} в ${time}`;
+}
+
+// заголовок растёт по содержимому: в textarea высоту задаём вручную
+function fitTitle() {
+  const el = document.getElementById('n-title');
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
 const noteEditor = {
   id: null, pinned: false, saveTimer: null, active: false, creating: null,
   open(note) {
@@ -1199,7 +1217,9 @@ const noteEditor = {
     document.getElementById('n-title').value = note ? (note.title || '') : '';
     document.getElementById('n-body').value = note ? (note.body || '') : '';
     document.getElementById('n-delete').hidden = !note;
+    document.getElementById('n-date').textContent = noteDate(note && note.updatedAt);
     this._reflectPin();
+    fitTitle();
     document.getElementById('note-page').classList.add('open');
     document.getElementById('app-root').classList.add('pushed');
     // фокус после переезда, иначе клавиатура дёргает анимацию
@@ -1235,6 +1255,7 @@ const noteEditor = {
       if (res && res.ok && res.note) {
         const i = state.notes.findIndex(n => n.id === this.id);
         if (i >= 0) state.notes[i] = res.note;
+        if (this.active) document.getElementById('n-date').textContent = noteDate(res.note.updatedAt);
       }
     } catch {}
   },
@@ -1318,7 +1339,11 @@ document.getElementById('notes-list').addEventListener('click', async (e) => {
 document.getElementById('n-back').addEventListener('click', () => noteEditor.close());
 document.getElementById('n-pin').addEventListener('click', () => noteEditor.togglePin());
 document.getElementById('n-delete').addEventListener('click', () => noteEditor.remove());
-document.getElementById('n-title').addEventListener('input', () => noteEditor.schedule());
+document.getElementById('n-title').addEventListener('input', () => { fitTitle(); noteEditor.schedule(); });
+// перевод строки в заголовке уводит в текст заметки, как на айфоне
+document.getElementById('n-title').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('n-body').focus(); }
+});
 document.getElementById('n-body').addEventListener('input', () => noteEditor.schedule());
 
 // свайп от левого края возвращает назад, как на iOS
