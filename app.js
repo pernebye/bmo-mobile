@@ -16,7 +16,7 @@ let apiBase = location.origin.includes('github.io') ? (localStorage.getItem(KEY_
 
 const state = {
   projects: [], workspaces: [], tasks: [], events: [], sessions: [], notes: [], notesTrash: [],
-  showTrash: false, activity: {},
+  showTrash: false, noteQuery: '', activity: {},
   screen: 'projects', scope: 'all', workspace: '', search: '',
   calCursor: new Date(), calSelected: '',
   sheet: { kind: 'task', item: null, steps: [] },
@@ -456,7 +456,7 @@ function renderProjects() {
     openTasks[key] = (openTasks[key] || 0) + 1;
   }
 
-  list.innerHTML = items.map(project => {
+  list.innerHTML = '<div class="group">' + items.map(project => {
     const tasks = openTasks[project.id];
     const hasDev = (project.devCommands || []).length > 0;
     return `
@@ -478,7 +478,7 @@ function renderProjects() {
         </div>
       </article>
     `;
-  }).join('');
+  }).join('') + '</div>';
   mountIcons(list);
 }
 
@@ -517,7 +517,8 @@ function renderTasks() {
   if (done.length) {
     const shown = done.slice(0, state.doneLimit);
     const rest = done.length - shown.length;
-    html += `<div class="group-title">Выполнено<span>${done.length}</span></div>` + shown.map(taskRow).join('');
+    html += `<div class="group-title">Выполнено<span>${done.length}</span></div>`
+      + `<div class="group">${shown.map(taskRow).join('')}</div>`;
     if (rest > 0 || state.doneLimit > 3) {
       html += '<div class="more-row">'
         + (rest > 0 ? `<button class="more-btn" data-more="more">Ещё ${Math.min(rest, 5)}</button>` : '')
@@ -542,8 +543,8 @@ function openGroups(tasks) {
   return Object.entries(groups)
     .filter(([, items]) => items.length)
     .map(([key, items]) => `
-      <div class="group-title${key === 'overdue' ? ' alert' : ''}">${titles[key]}</div>
-      ${items.map(taskRow).join('')}
+      <div class="group-title${key === 'overdue' ? ' alert' : ''}">${titles[key]}<span>${items.length}</span></div>
+      <div class="group">${items.map(taskRow).join('')}</div>
     `).join('');
 }
 
@@ -709,7 +710,7 @@ function renderSessions() {
     list.innerHTML = '<div class="empty">Недавних сессий нет</div>';
     return;
   }
-  list.innerHTML = state.sessions.map(session => `
+  list.innerHTML = '<div class="group">' + state.sessions.map(session => `
     <article class="card" data-session="${esc(session.sessionId)}">
       <div class="card-head">
         ${avatarHtml(state.projects.find(p => p.id === session.projectId), session.tabColor || '#3a3a42', session.projectName)}
@@ -722,7 +723,7 @@ function renderSessions() {
         <button class="btn btn-run btn-wide" data-act="resume"><i data-icon="terminal"></i>Продолжить</button>
       </div>
     </article>
-  `).join('');
+  `).join('') + '</div>';
   mountIcons(list);
 }
 
@@ -1137,28 +1138,71 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.dataset.screen === state.screen));
     document.getElementById('screen-title').textContent =
       { projects: 'Проекты', tasks: 'Задачи', calendar: 'Календарь', sessions: 'Сессии', notes: 'Заметки' }[state.screen];
-    document.getElementById('btn-add').hidden = !(state.screen === 'tasks' || state.screen === 'calendar' || state.screen === 'notes');
+    document.getElementById('btn-add').hidden = !(state.screen === 'tasks' || state.screen === 'calendar');
+    document.getElementById('notes-bar').hidden = state.screen !== 'notes';
+    window.scrollTo(0, 0);
   });
 });
 
 document.getElementById('btn-add').addEventListener('click', () => {
   if (blocked()) return;
-  if (state.screen === 'notes') noteEditor.open(null);
-  else if (state.screen === 'calendar') sheet.open('event', null, { at: `${state.calSelected || ymd(new Date())}T10:00` });
+  if (state.screen === 'calendar') sheet.open('event', null, { at: `${state.calSelected || ymd(new Date())}T10:00` });
   else sheet.open('task', null);
 });
 
 // --- заметки ---
-const PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>';
 
 function noteCard(n) {
   const title = esc((n.title || '').trim() || 'Без заголовка');
-  const snippet = esc((n.body || '').replace(/\s+/g, ' ').trim().slice(0, 90));
-  const pin = n.pinned ? `<span class="note-card-pin">${PIN_SVG}</span>` : '';
-  return `<button class="note-card${n.pinned ? ' pinned' : ''}" data-note="${esc(n.id)}">
-    <div class="note-card-head">${pin}<span class="note-card-title">${title}</span><span class="note-card-when">${ago(n.updatedAt)}</span></div>
-    ${snippet ? `<div class="note-card-snippet">${snippet}</div>` : ''}
+  const snippet = esc((n.body || '').replace(/\s+/g, ' ').trim().slice(0, 80));
+  return `<button class="note-card" data-note="${esc(n.id)}">
+    <div class="note-card-title">${title}</div>
+    <div class="note-card-sub"><span class="note-card-when">${noteWhen(n.updatedAt)}</span>${snippet ? '&nbsp;&nbsp;' + snippet : ''}</div>
   </button>`;
+}
+
+// дата в строке списка: время для сегодняшних, день недели для недавних, дальше — число
+function noteWhen(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const days = daysBack(d);
+  if (days <= 0) return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  if (days === 1) return 'вчера';
+  if (days <= 7) return WD_FULL[d.getDay()];
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '');
+}
+
+const WD_FULL = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+
+function daysBack(d) {
+  const midnight = new Date();
+  midnight.setHours(0, 0, 0, 0);
+  const own = new Date(d);
+  own.setHours(0, 0, 0, 0);
+  return Math.round((midnight - own) / 86400000);
+}
+
+// секции как в «Заметках»: закреплённые, затем по давности правки
+function noteBucket(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return 'Ранее';
+  const days = daysBack(d);
+  if (days <= 0) return 'Сегодня';
+  if (days === 1) return 'Вчера';
+  if (days <= 7) return 'Последние 7 дней';
+  if (days <= 30) return 'Последние 30 дней';
+  const month = d.toLocaleDateString('ru-RU', { month: 'long' });
+  const title = month[0].toUpperCase() + month.slice(1);
+  return d.getFullYear() === new Date().getFullYear() ? title : `${title} ${d.getFullYear()}`;
+}
+
+function notesPlural(n) {
+  const tail = n % 100 > 4 && n % 100 < 21 ? 0 : [0, 1, 2, 2, 2][Math.min(n % 10, 4)];
+  return `${n} ${['заметок', 'заметка', 'заметки'][tail]}`;
+}
+
+function section(title, notes) {
+  return `<div class="group-title">${title}</div><div class="group">${notes.map(noteCard).join('')}</div>`;
 }
 
 function trashCard(n) {
@@ -1175,12 +1219,35 @@ function trashCard(n) {
 
 function renderNotes() {
   const list = document.getElementById('notes-list');
-  const notes = state.notes || [];
+  const all = state.notes || [];
   const trash = state.notesTrash || [];
-  let html = notes.length ? notes.map(noteCard).join('') : '<div class="empty">Заметок пока нет</div>';
-  if (trash.length) {
+  document.getElementById('notes-count').textContent = notesPlural(all.length);
+
+  const query = (state.noteQuery || '').trim().toLowerCase();
+  const notes = query
+    ? all.filter(n => (n.title + ' ' + n.body).toLowerCase().includes(query))
+    : all;
+
+  let html;
+  if (!notes.length) {
+    html = `<div class="empty">${query ? 'Ничего не нашлось' : 'Заметок пока нет'}</div>`;
+  } else if (query) {
+    html = `<div class="group">${notes.map(noteCard).join('')}</div>`;
+  } else {
+    const pinned = notes.filter(n => n.pinned);
+    html = pinned.length ? section('Закреплённые', pinned) : '';
+    const buckets = new Map();
+    for (const note of notes.filter(n => !n.pinned)) {
+      const key = noteBucket(note.updatedAt);
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(note);
+    }
+    for (const [title, items] of buckets) html += section(title, items);
+  }
+
+  if (trash.length && !query) {
     html += `<button class="notes-trash-toggle">${state.showTrash ? 'Скрыть корзину' : `Корзина · ${trash.length}`}</button>`;
-    if (state.showTrash) html += trash.map(trashCard).join('');
+    if (state.showTrash) html += `<div class="group">${trash.map(trashCard).join('')}</div>`;
   }
   list.innerHTML = html;
 }
@@ -1336,6 +1403,19 @@ document.getElementById('notes-list').addEventListener('click', async (e) => {
   const note = (state.notes || []).find(n => n.id === card.dataset.note);
   if (note) noteEditor.open(note);
 });
+document.getElementById('notes-compose').addEventListener('click', () => {
+  if (!blocked()) noteEditor.open(null);
+});
+document.getElementById('notes-search').addEventListener('input', (e) => {
+  state.noteQuery = e.target.value;
+  renderNotes();
+});
+
+// шапка проявляется, только когда крупный заголовок ушёл вверх
+window.addEventListener('scroll', () => {
+  document.querySelector('.topbar').classList.toggle('scrolled', window.scrollY > 34);
+}, { passive: true });
+
 document.getElementById('n-back').addEventListener('click', () => noteEditor.close());
 document.getElementById('n-pin').addEventListener('click', () => noteEditor.togglePin());
 document.getElementById('n-delete').addEventListener('click', () => noteEditor.remove());

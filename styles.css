@@ -76,11 +76,18 @@ body {
   justify-content: space-between;
   background: var(--bar-bg);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid transparent;
+  transition: border-color 150ms ease-out;
   z-index: 20;
 }
 
-.topbar-title { font-size: 17px; font-weight: 650; letter-spacing: -0.2px; }
+.topbar.scrolled { border-bottom-color: var(--border); }
+
+.topbar-title { font-size: 17px; font-weight: 650; letter-spacing: -0.2px; opacity: 0; transition: opacity 150ms ease-out; }
+.topbar.scrolled .topbar-title { opacity: 1; }
+
+.screen-title { margin: 2px 3px 12px; font-size: 30px; font-weight: 700; letter-spacing: -0.7px; }
+.screen-sub { margin: -8px 4px 14px; font-size: 13px; color: var(--dim); }
 
 .topbar-btn {
   display: flex;
@@ -103,6 +110,7 @@ body {
 }
 
 .screen { display: none; padding: 0 14px; }
+.screen[data-screen="notes"] { padding-bottom: 60px; }
 .screen.active { display: block; }
 
 .search-row { margin-bottom: 10px; }
@@ -111,7 +119,7 @@ input[type="search"], input[type="text"], select {
   width: 100%;
   padding: 11px 13px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: 10px;
   color: var(--text);
   font-family: inherit;
@@ -148,7 +156,7 @@ input:focus, select:focus { border-color: var(--accent); }
 }
 
 .chip span { font-size: 11px; opacity: 0.7; }
-.chip.active { background: var(--elevated); border-color: var(--border); color: var(--text); }
+.chip.active { background: var(--elevated); color: var(--text); }
 
 /* Списки */
 .list { display: flex; flex-direction: column; gap: 8px; }
@@ -156,8 +164,30 @@ input:focus, select:focus { border-color: var(--accent); }
 .card {
   padding: 13px 14px;
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: var(--radius);
+}
+
+/* Группа: подряд идущие строки — один скруглённый блок без рамок,
+   разделитель начинается от текста, а не от края (как в списках айфона). */
+.group {
+  background: var(--surface);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.group > * {
+  background: transparent;
+  border-radius: 0;
+}
+
+.group > * + * { position: relative; }
+
+.group > * + *::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 14px; right: 0;
+  height: 1px;
+  background: var(--border);
 }
 
 .card-head { display: flex; align-items: center; gap: 10px; }
@@ -252,16 +282,21 @@ input:focus, select:focus { border-color: var(--accent); }
 
 /* Задачи */
 .group-title {
-  margin: 18px 2px 6px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--dim);
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 22px 4px 8px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text);
 }
 
-.group-title.alert { color: var(--red); }
-.group-title:first-child { margin-top: 4px; }
+.group-title span { font-size: 13px; font-weight: 400; color: var(--dim); }
+
+/* просрочку помечаем счётчиком, а не целым заголовком: красный не должен быть самым громким на экране */
+.group-title.alert span { color: var(--red); }
+.group-title:first-child { margin-top: 2px; }
 
 .task {
   display: flex;
@@ -269,7 +304,6 @@ input:focus, select:focus { border-color: var(--accent); }
   gap: 12px;
   padding: 13px 14px;
   background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: var(--radius);
 }
 
@@ -455,9 +489,9 @@ input:focus, select:focus { border-color: var(--accent); }
 .quick-dates button {
   flex-shrink: 0;
   padding: 7px 12px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 999px;
-  background: transparent;
+  background: var(--elevated);
   color: var(--muted);
   font-family: inherit;
   font-size: 12.5px;
@@ -497,7 +531,6 @@ input:focus, select:focus { border-color: var(--accent); }
   padding: 11px 18px;
   border-radius: 11px;
   background: var(--elevated);
-  border: 1px solid var(--border);
   color: var(--text);
   font-size: 13.5px;
   text-align: center;
@@ -555,9 +588,9 @@ input:focus, select:focus { border-color: var(--accent); }
 
 .login-scan {
   padding: 11px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 11px;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.14);
   color: var(--muted);
   font-family: inherit;
   font-size: 13.5px;
@@ -831,7 +864,7 @@ input:focus, select:focus { border-color: var(--accent); }
 input[type="date"], input[type="time"] {
   width: 100%;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: 10px;
   color: var(--text);
   font-family: inherit;
@@ -844,7 +877,7 @@ textarea {
   width: 100%;
   padding: 11px 13px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: 10px;
   color: var(--text);
   font-family: inherit;
@@ -874,9 +907,9 @@ textarea:focus { border-color: var(--accent); }
 
 .ghost {
   padding: 13px 14px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 11px;
-  background: transparent;
+  background: var(--elevated);
   color: var(--muted);
   font-family: inherit;
   font-size: 14px;
@@ -930,7 +963,7 @@ textarea:focus { border-color: var(--accent); }
 
 /* Этапы проекта */
 .cat-milestone { --cat: var(--accent); }
-.agenda-item.cat-milestone { background: transparent; border: 1px solid var(--accent); border-left-width: 4px; }
+.agenda-item.cat-milestone { background: transparent; box-shadow: inset 3px 0 0 var(--accent); }
 .task-stage::before { content: '\25C6 '; font-size: 8px; color: var(--accent); }
 
 /* Офлайн: только просмотр */
@@ -1080,16 +1113,13 @@ body.sheet-open .fab { display: none; }
 /* заметки */
 .note-card {
   display: block; width: 100%; text-align: left; font-family: inherit; color: var(--text);
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 13px 15px;
+  background: transparent; border: none; border-radius: 0;
+  padding: 12px 15px;
 }
 .note-card:active { background: var(--hover); }
-.note-card-head { display: flex; align-items: center; gap: 7px; }
-.note-card-pin { display: inline-flex; flex-shrink: 0; color: var(--accent); }
-.note-card-pin svg { width: 13px; height: 13px; }
-.note-card-title { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.note-card-when { flex-shrink: 0; font-size: 12px; color: var(--dim); }
-.note-card-snippet { font-size: 13px; color: var(--muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.note-card-title { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.note-card-sub { margin-top: 3px; font-size: 13px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.note-card-when { color: var(--muted); }
 
 /* заметка — отдельный экран, iOS push (предыдущий уезжает влево с затемнением).
    Двигаем каждый элемент экрана по отдельности, а НЕ общий контейнер: если наложить
@@ -1289,15 +1319,72 @@ body.sheet-open { background: var(--surface); }
 }
 .note-card.trashed { opacity: 0.62; }
 .note-card.trashed .note-card-title { font-weight: 500; }
-.trash-actions { display: flex; gap: 8px; margin: -2px 0 10px; }
+.trash-actions { padding-bottom: 4px; }
+.trash-actions { display: flex; gap: 8px; margin: 8px 0 2px; }
 .trash-actions button {
   flex: 1;
   padding: 9px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 10px;
-  background: var(--surface);
+  background: var(--elevated);
   color: var(--text);
   font-family: inherit;
   font-size: 13px;
 }
 .trash-actions button.danger { color: var(--red); }
+
+/* Поиск и создание заметки — плавающей полосой над таббаром */
+.notes-bar {
+  position: fixed;
+  left: 12px; right: 12px;
+  bottom: calc(74px + var(--safe-bottom));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 14;
+}
+
+.notes-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 22px;
+  background: var(--bar-bg);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 6px 20px var(--shadow);
+  color: var(--dim);
+}
+
+.notes-search [data-icon] { font-size: 17px; }
+
+.notes-search input {
+  flex: 1;
+  height: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  font-size: 15px;
+}
+
+.notes-compose {
+  flex-shrink: 0;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--bar-bg);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 6px 20px var(--shadow);
+  color: var(--accent);
+}
+
+.notes-compose [data-icon] { font-size: 20px; }
+.notes-compose:active { background: var(--hover); }
+
+/* пока открыта заметка, панель уезжает вместе с экраном */
+.app-root.pushed .notes-bar { opacity: 0; }
+.notes-bar { transition: opacity 180ms ease-out; }

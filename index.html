@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=49">
+<link rel="stylesheet" href="styles.css?v=50">
 </head>
 <body>
 
@@ -61,6 +61,7 @@
 <main class="screens">
   <!-- Проекты -->
   <section class="screen active" data-screen="projects">
+    <h1 class="screen-title">Проекты</h1>
     <div class="search-row">
       <input type="search" id="project-search" placeholder="Поиск проекта" autocomplete="off">
     </div>
@@ -70,6 +71,7 @@
 
   <!-- Задачи -->
   <section class="screen" data-screen="tasks">
+    <h1 class="screen-title">Задачи</h1>
     <div class="chips" id="task-chips">
       <button class="chip active" data-scope="all">Все<span>0</span></button>
       <button class="chip" data-scope="today">Сегодня<span>0</span></button>
@@ -81,6 +83,7 @@
 
   <!-- Календарь -->
   <section class="screen" data-screen="calendar">
+    <h1 class="screen-title">Календарь</h1>
     <div class="cal-top">
       <button class="cal-month-btn" id="cal-month-btn"><span id="cal-month-title"></span><i data-icon="chevron-down"></i></button>
       <div class="cal-top-actions">
@@ -95,16 +98,24 @@
 
   <!-- Сессии -->
   <section class="screen" data-screen="sessions">
+    <h1 class="screen-title">Сессии</h1>
     <div class="list" id="sessions-list"></div>
   </section>
 
   <!-- Заметки -->
   <section class="screen" data-screen="notes">
+    <h1 class="screen-title">Заметки</h1>
+    <div class="screen-sub" id="notes-count"></div>
     <div class="list" id="notes-list"></div>
   </section>
 </main>
 
 <button class="fab" id="btn-add" aria-label="Добавить" hidden><i data-icon="plus"></i></button>
+
+<div class="notes-bar" id="notes-bar" hidden>
+  <label class="notes-search"><i data-icon="search"></i><input type="search" id="notes-search" placeholder="Поиск" autocomplete="off"></label>
+  <button class="notes-compose" id="notes-compose" aria-label="Новая заметка"><i data-icon="edit"></i></button>
+</div>
 
 <nav class="tabbar">
   <button class="tab active" data-target="projects"><i data-icon="grid"></i><span>Проекты</span></button>
@@ -217,7 +228,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=49"></script>
-<script src="app.js?v=49"></script>
+<script src="icons.js?v=50"></script>
+<script src="app.js?v=50"></script>
 </body>
 </html>
