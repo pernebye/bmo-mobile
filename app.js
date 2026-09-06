@@ -1627,6 +1627,8 @@ document.getElementById('notes-compose').addEventListener('click', () => {
       try { localStorage.setItem(KB_KEY, keyboard); } catch {}
     }
     bar.style.top = (viewport.pageTop + viewport.height - bar.offsetHeight - 8) + 'px';
+    // документ ровно в высоту видимой области: тогда прокручивать нечего
+    document.body.style.height = viewport.height + 'px';
   }
 
   input.addEventListener('input', () => {
@@ -1642,7 +1644,11 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     // тогда уводить нечего, и список стоит на месте.
     const keepY = window.scrollY;
     document.body.classList.add('typing');
+    // body тянется на 100vh, а вьюпорт под клавиатурой становится ниже — отсюда и берётся
+    // ход прокрутки, который Safari выбирает до упора. Убираем его заранее.
+    document.body.style.height = (window.innerHeight - (keyboard || Math.round(window.innerHeight * 0.45))) + 'px';
     window.scrollTo(0, keepY);
+    trace('focus');
     // Сразу закрепляем полосу там, где она и так видна. Раньше здесь удерживалась
     // прокрутка, и это дралось с iOS: список прыгал вниз и уезжал обратно. Теперь
     // прокручивать нечего — поле уже в видимой части, а с выездом клавиатуры полоса
@@ -1656,6 +1662,7 @@ document.getElementById('notes-compose').addEventListener('click', () => {
   input.addEventListener('blur', () => {
     typing = false;
     document.body.classList.remove('typing');
+    document.body.style.height = '';
     bar.style.position = '';
     bar.style.top = '';
     bar.style.bottom = '';
@@ -2025,3 +2032,34 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && to
   // адрес туннеля меняется вместе с перезагрузкой компьютера
   setInterval(resolveApi, 300000);
 })();
+
+// ВРЕМЕННАЯ лента замеров: пишет, что происходит первую секунду после фокуса.
+// Показывается над полосой поиска, снять после проверки.
+function trace(reason) {
+  const vv = window.visualViewport;
+  const box = document.getElementById('trace') || (() => {
+    const el = document.createElement('div');
+    el.id = 'trace';
+    el.style.cssText = 'position:absolute;left:6px;right:6px;z-index:9999;background:rgba(0,0,0,.9);'
+      + 'color:#35ff6d;font:10px/1.25 ui-monospace,Menlo,monospace;padding:4px 6px;white-space:pre';
+    document.body.appendChild(el);
+    return el;
+  })();
+  const rows = [`${reason}  t  sY  iH  vH  docH  hdr`];
+  const started = Date.now();
+  const head = () => {
+    const el = document.querySelector('#notes-list .group-title');
+    return el ? Math.round(el.getBoundingClientRect().top) : 0;
+  };
+  const sample = () => {
+    rows.push(`${String(Date.now() - started).padStart(6)} `
+      + `${String(Math.round(scrollY)).padStart(4)} ${String(innerHeight).padStart(4)} `
+      + `${String(Math.round(vv.height)).padStart(4)} `
+      + `${String(document.documentElement.scrollHeight).padStart(5)} `
+      + `${String(head()).padStart(5)}`);
+    box.textContent = rows.join('\n');
+    const bar = document.getElementById('notes-bar');
+    box.style.top = (parseFloat(bar.style.top || 0) - 8 - rows.length * 13) + 'px';
+  };
+  for (const ms of [0, 60, 120, 200, 300, 450, 700, 1000, 1400]) setTimeout(sample, ms);
+}
