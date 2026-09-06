@@ -2080,7 +2080,19 @@ function trace(reason) {
       + num(vv.height, 5) + num(docH, 6) + num(root.offsetHeight, 6)
       + num(docH - innerHeight, 5) + num(parseFloat(bar.style.top || 0), 5)
       + num(head ? head.getBoundingClientRect().top : 0, 5));
-    box.textContent = rows.join('\n');
+    // кто именно тянет документ вниз
+    let worst = null;
+    let worstBottom = 0;
+    for (const el of document.body.children) {
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.position === 'fixed') continue;
+      const bottom = el.offsetTop + el.offsetHeight;
+      if (bottom > worstBottom) { worstBottom = bottom; worst = el; }
+    }
+    box.textContent = rows.join('\n')
+      + '\nвыше всех: ' + (worst ? (worst.id || worst.className) : '-')
+      + ' до ' + Math.round(worstBottom)
+      + '  bodyH ' + Math.round(document.body.getBoundingClientRect().height);
     box.style.top = (parseFloat(bar.style.top || 0) - 8 - rows.length * 13) + 'px';
   };
   for (const ms of [0, 40, 80, 120, 180, 260, 400, 700, 1200]) setTimeout(sample, ms);
