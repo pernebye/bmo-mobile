@@ -397,10 +397,7 @@ input:focus, select:focus { border-color: var(--accent); }
 
 .sheet {
   position: fixed;
-  left: 0; right: 0;
-  /* тянем шторку ниже линии safe-area: иначе iOS обрезает её выше физического низа
-     и последние ~34px экрана выпадают из области прокрутки */
-  bottom: calc(env(safe-area-inset-bottom, 0px) * -1);
+  left: 0; right: 0; bottom: 0;
   z-index: 31;
   max-height: 88vh;
   display: flex;
@@ -1054,9 +1051,9 @@ body.sheet-open .fab { display: none; }
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  /* нижний отступ с запасом на «домашнюю полосу»: контент прокручивается через неё,
-     но в конце списка останавливается выше — палец не спорит с системным жестом */
-  padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  /* «Домашняя полоса» перекрывает низ, а env(safe-area-inset-bottom) в этом PWA
+     отдаёт 0 — поэтому минимум задаём числом, как у обычных экранов с таббаром */
+  padding: 12px 16px calc(24px + max(18px, env(safe-area-inset-bottom, 0px)));
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1144,7 +1141,7 @@ body.sheet-open .fab { display: none; }
 .note-page-body {
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
   display: flex; flex-direction: column; gap: 10px;
-  padding: 16px 18px calc(var(--safe-bottom) + 24px);
+  padding: 16px 18px calc(24px + max(18px, env(safe-area-inset-bottom, 0px)));
 }
 #n-title { border: none; background: none; padding: 0; font-family: inherit; font-size: 21px; font-weight: 600; color: var(--text); outline: none; }
 #n-title::placeholder { color: var(--dim); }
