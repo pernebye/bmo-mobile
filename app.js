@@ -1380,7 +1380,7 @@ function reflectSearch() {
   if (showStart) {
     renderSearchStart();
     // ждём, пока клавиатура доедет и вьюпорт перестанет скакать
-    startReveal = setTimeout(() => start.classList.add('on'), 320);
+    startReveal = setTimeout(() => start.classList.add('on'), 430);
   } else {
     start.classList.remove('on');
   }
@@ -1728,6 +1728,7 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     // прокрутки, и Safari уводит её к полю. Пока идёт ввод, прокрутку запрещаем —
     // тогда уводить нечего, и список стоит на месте.
     document.body.classList.add('typing');
+    document.querySelector('.topbar').classList.remove('scrolled');
     reflectSearch();
     baseHeight = window.innerHeight;
     // лучше промахнуться вверх: если поле окажется под клавиатурой, Safari прокрутит страницу
@@ -1775,7 +1776,10 @@ document.getElementById('notes-compose').addEventListener('click', () => {
 
 // шапка проявляется, только когда крупный заголовок ушёл вверх
 window.addEventListener('scroll', () => {
-  document.querySelector('.topbar').classList.toggle('scrolled', window.scrollY > 34);
+  // при наборе страницу двигает клавиатура, а не пользователь — заголовок в шапке
+  // не показываем, иначе он дублирует крупный заголовок экрана
+  document.querySelector('.topbar').classList.toggle('scrolled',
+    window.scrollY > 34 && !document.body.classList.contains('typing'));
 }, { passive: true });
 
 // Свайп по строке заметки влево открывает кнопки, как в системных списках iOS.

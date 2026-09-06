@@ -1558,7 +1558,7 @@ body.sheet-open { background: var(--surface); }
 .notes-stack { position: relative; }
 
 /* список гаснет быстро — раньше, чем клавиатура успеет сжать вьюпорт */
-#notes-list { transition: opacity 140ms ease-out; }
+#notes-list { transition: opacity 260ms ease-out; }
 #notes-list.faded { opacity: 0; pointer-events: none; }
 
 /* разделы проявляются уже после скачка, поэтому его не видно */
@@ -1567,7 +1567,7 @@ body.sheet-open { background: var(--surface); }
   top: 0; left: 0; right: 0;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 220ms ease-out;
+  transition: opacity 340ms ease-out;
 }
 
 #search-start.on { opacity: 1; pointer-events: auto; }
