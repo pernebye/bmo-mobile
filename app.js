@@ -1406,10 +1406,26 @@ document.getElementById('notes-list').addEventListener('click', async (e) => {
 document.getElementById('notes-compose').addEventListener('click', () => {
   if (!blocked()) noteEditor.open(null);
 });
-document.getElementById('notes-search').addEventListener('input', (e) => {
-  state.noteQuery = e.target.value;
-  renderNotes();
-});
+(() => {
+  const input = document.getElementById('notes-search');
+  const cancel = document.getElementById('notes-cancel');
+
+  input.addEventListener('input', () => {
+    state.noteQuery = input.value;
+    renderNotes();
+  });
+  input.addEventListener('focus', () => document.body.classList.add('searching'));
+  input.addEventListener('blur', () => document.body.classList.remove('searching'));
+
+  // гасим pointerdown, иначе поле теряет фокус раньше, чем до кнопки дойдёт click
+  cancel.addEventListener('pointerdown', (e) => e.preventDefault());
+  cancel.addEventListener('click', () => {
+    input.value = '';
+    state.noteQuery = '';
+    renderNotes();
+    input.blur();
+  });
+})();
 
 // шапка проявляется, только когда крупный заголовок ушёл вверх
 window.addEventListener('scroll', () => {

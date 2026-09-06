@@ -185,7 +185,7 @@ input:focus, select:focus { border-color: var(--accent); }
 .group > * + *::before {
   content: '';
   position: absolute;
-  top: 0; left: 14px; right: 0;
+  top: 0; left: 14px; right: 14px;
   height: 1px;
   background: var(--border);
 }
@@ -1385,6 +1385,22 @@ body.sheet-open { background: var(--surface); }
 
 .notes-compose [data-icon] { font-size: 20px; }
 .notes-compose:active { background: var(--hover); }
+
+.notes-cancel {
+  display: none;
+  flex-shrink: 0;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 15px;
+}
+
+body.searching .notes-compose { display: none; }
+body.searching .notes-cancel { display: block; }
+body.searching .tabbar { opacity: 0; pointer-events: none; }
+body.searching .notes-bar { bottom: calc(8px + var(--safe-bottom)); }
 
 /* пока открыта заметка, панель уезжает вместе с экраном */
 .app-root.pushed .notes-bar { opacity: 0; }
