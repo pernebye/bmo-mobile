@@ -1380,7 +1380,7 @@ function reflectSearch() {
   if (showStart) {
     renderSearchStart();
     // ждём, пока клавиатура доедет и вьюпорт перестанет скакать
-    startReveal = setTimeout(() => start.classList.add('on'), 430);
+    startReveal = setTimeout(() => start.classList.add('on'), 620);
   } else {
     start.classList.remove('on');
   }

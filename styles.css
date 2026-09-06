@@ -1557,8 +1557,22 @@ body.sheet-open { background: var(--surface); }
    проявлением: пока список не виден, скачок вьюпорта под клавиатуру глазу не заметен. */
 .notes-stack { position: relative; }
 
-/* список гаснет быстро — раньше, чем клавиатура успеет сжать вьюпорт */
-#notes-list { transition: opacity 260ms ease-out; }
+/* Заголовок экрана уходит вверх и гаснет вместе со списком: во время поиска
+   единственный заголовок — «Разделы», иначе кажется, что экран дёргается. */
+.screen[data-screen="notes"] .screen-title,
+.screen[data-screen="notes"] .screen-sub {
+  transition: opacity 380ms ease-out, transform 380ms ease-out;
+}
+
+body.searching .screen[data-screen="notes"] .screen-title,
+body.searching .screen[data-screen="notes"] .screen-sub {
+  opacity: 0;
+  transform: translateY(-14px);
+  pointer-events: none;
+}
+
+/* список гаснет раньше, чем клавиатура успеет сжать вьюпорт */
+#notes-list { transition: opacity 380ms ease-out; }
 #notes-list.faded { opacity: 0; pointer-events: none; }
 
 /* разделы проявляются уже после скачка, поэтому его не видно */
@@ -1567,7 +1581,7 @@ body.sheet-open { background: var(--surface); }
   top: 0; left: 0; right: 0;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 340ms ease-out;
+  transition: opacity 420ms ease-out;
 }
 
 #search-start.on { opacity: 1; pointer-events: auto; }
