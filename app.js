@@ -1612,10 +1612,20 @@ document.getElementById('notes-compose').addEventListener('click', () => {
   // и никакой математики не нужно. Режим поиска при этом остаётся включённым.
   let typing = false;
 
+  // Safari прокручивает страницу, если поле окажется под клавиатурой. Поэтому при фокусе
+  // ставим полосу сразу над будущей клавиатурой — прокручивать становится незачем, и
+  // список не двигается. Высоту клавиатуры помним с прошлого раза, первый раз берём
+  // приблизительную: важно лишь оказаться выше её края.
+  const KB_KEY = 'bmo-kb';
+  let keyboard = Number(localStorage.getItem(KB_KEY) || 0);
+
   function placeBar() {
     if (!typing || !viewport) return;
-    bar.style.position = 'absolute';
-    bar.style.bottom = 'auto';
+    const kb = window.innerHeight - viewport.height;
+    if (kb > 120) {
+      keyboard = Math.round(kb);
+      try { localStorage.setItem(KB_KEY, keyboard); } catch {}
+    }
     bar.style.top = (viewport.pageTop + viewport.height - bar.offsetHeight - 8) + 'px';
   }
 
@@ -1633,7 +1643,8 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     // просто поднимется на своё место.
     bar.style.position = 'absolute';
     bar.style.bottom = 'auto';
-    bar.style.top = (window.scrollY + window.innerHeight - bar.offsetHeight - 8) + 'px';
+    const kb = keyboard || Math.round(window.innerHeight * 0.45);
+    bar.style.top = (window.scrollY + window.innerHeight - kb - bar.offsetHeight - 8) + 'px';
   });
 
   input.addEventListener('blur', () => {
