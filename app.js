@@ -574,8 +574,8 @@ function taskRow(task) {
       <button class="check" data-act="done"></button>
       <div class="task-body" data-act="open">
         <div class="task-title">${task.priority === 'high' && !isDone ? '<span class="task-flag">● </span>' : ''}${esc(task.title)}</div>
-        ${meta.length ? `<div class="task-meta">${meta.join('')}</div>` : ''}
         ${task.notes && !isDone ? `<div class="task-notes">${esc(task.notes)}</div>` : ''}
+        ${meta.length ? `<div class="task-meta">${meta.join('')}</div>` : ''}
       </div>
     </article>
   `;
