@@ -1138,13 +1138,25 @@ body.sheet-open .fab { display: none; }
 
 .swipe-act.danger { background: var(--red); color: #fff; }
 
-.swipe .note-card {
+.swipe .swipe-body {
   position: relative;
   background: var(--surface);
   transition: transform 220ms ease-out;
 }
 
-.swipe.dragging .note-card { transition: none; }
+.swipe.dragging .swipe-body { transition: none; }
+
+/* Строка свайпа непрозрачна и перекрывает разделитель родителя, поэтому линию
+   несёт она сама — заодно линия уезжает вместе со строкой, как в iOS. */
+.group > * + .swipe::before { display: none; }
+
+.group > * + .swipe .swipe-body::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 14px; right: 14px;
+  height: 1px;
+  background: var(--border);
+}
 .note-card:active { background: var(--hover); }
 .note-card-title { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .note-card-sub { margin-top: 3px; font-size: 13px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

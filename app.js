@@ -569,8 +569,8 @@ function taskRow(task) {
   }
   const comments = (task.comments || []).length;
   if (comments && !isDone) meta.push(`<span class="task-comments">${ICONS.chat}${comments}</span>`);
-  return `
-    <article class="task${isOverdue(task) ? ' overdue' : ''}${isDone ? ' done' : ''}" data-id="${esc(task.id)}">
+  const row = `
+    <article class="task swipe-body${isOverdue(task) ? ' overdue' : ''}${isDone ? ' done' : ''}" data-id="${esc(task.id)}">
       <button class="check" data-act="done"></button>
       <div class="task-body" data-act="open">
         <div class="task-title">${task.priority === 'high' && !isDone ? '<span class="task-flag">● </span>' : ''}${esc(task.title)}</div>
@@ -579,6 +579,17 @@ function taskRow(task) {
       </div>
     </article>
   `;
+  if (task.external) return row;          // зеркало чужого трекера — менять нечего
+  const mark = isDone
+    ? `<button class="swipe-act" data-swipe="reopen" data-id="${esc(task.id)}">Вернуть</button>`
+    : `<button class="swipe-act" data-swipe="flag" data-id="${esc(task.id)}">${task.priority === 'high' ? 'Обычная' : 'Важная'}</button>`;
+  return `<div class="swipe">
+    <div class="swipe-actions">
+      ${mark}
+      <button class="swipe-act danger" data-swipe="drop" data-id="${esc(task.id)}">Удалить</button>
+    </div>
+    ${row}
+  </div>`;
 }
 
 function renderCounts() {
@@ -1034,7 +1045,37 @@ document.getElementById('sessions-list').addEventListener('click', async (e) => 
   }
 });
 
+async function flagTask(task) {
+  const priority = task.priority === 'high' ? 'normal' : 'high';
+  try { await api('/api/update', 'POST', { id: task.id, patch: { priority } }); } catch {}
+  task.priority = priority;
+  renderTasks();
+}
+
+async function dropTask(task) {
+  try { await api('/api/delete', 'POST', { id: task.id }); } catch {}
+  state.tasks = state.tasks.filter(t => t.id !== task.id);
+  renderAll();
+  toast('Задача удалена');
+}
+
 document.getElementById('tasks-list').addEventListener('click', async (e) => {
+  const swiped = e.target.closest('[data-swipe]');
+  if (swiped) {
+    if (blocked()) return;
+    const task = state.tasks.find(t => t.id === swiped.dataset.id);
+    closeSwipe();
+    if (!task) return;
+    if (swiped.dataset.swipe === 'flag') return flagTask(task);
+    if (swiped.dataset.swipe === 'drop') return dropTask(task);
+    try { await api('/api/reopen', 'POST', { id: task.id }); } catch {}
+    task.status = 'open';
+    return renderAll();
+  }
+  // открытую строку первый тап только закрывает
+  if (openSwipe && e.target.closest('.swipe') === openSwipe) { closeSwipe(); return; }
+  closeSwipe();
+
   const more = e.target.closest('[data-more]');
   if (more) {
     state.doneLimit = more.dataset.more === 'less' ? 3 : state.doneLimit + 5;
@@ -1160,7 +1201,7 @@ function noteCard(n) {
       <button class="swipe-act" data-swipe="pin" data-id="${esc(n.id)}">${n.pinned ? 'Открепить' : 'Закрепить'}</button>
       <button class="swipe-act danger" data-swipe="delete" data-id="${esc(n.id)}">Удалить</button>
     </div>
-    <button class="note-card" data-note="${esc(n.id)}">
+    <button class="note-card swipe-body" data-note="${esc(n.id)}">
       <div class="note-card-title">${title}</div>
       <div class="note-card-sub"><span class="note-card-when">${noteWhen(n.updatedAt)}</span>${snippet ? '&nbsp;&nbsp;' + snippet : ''}</div>
     </button>
@@ -1501,19 +1542,18 @@ let openSwipe = null;
 
 function closeSwipe() {
   if (!openSwipe) return;
-  openSwipe.querySelector('.note-card').style.transform = '';
+  openSwipe.querySelector('.swipe-body').style.transform = '';
   openSwipe = null;
 }
 
-(() => {
-  const list = document.getElementById('notes-list');
+function enableSwipe(list) {
   let drag = null;
 
   list.addEventListener('touchstart', (e) => {
     const row = e.target.closest('.swipe');
     if (!row) return;
     if (openSwipe && openSwipe !== row) closeSwipe();
-    const card = row.querySelector('.note-card');
+    const card = row.querySelector('.swipe-body');
     drag = {
       row, card,
       x0: e.touches[0].clientX,
@@ -1551,8 +1591,11 @@ function closeSwipe() {
     drag = null;
   });
 
-  window.addEventListener('scroll', () => closeSwipe(), { passive: true });
-})();
+}
+
+enableSwipe(document.getElementById('notes-list'));
+enableSwipe(document.getElementById('tasks-list'));
+window.addEventListener('scroll', () => closeSwipe(), { passive: true });
 
 document.getElementById('n-back').addEventListener('click', () => noteEditor.close());
 document.getElementById('n-pin').addEventListener('click', () => noteEditor.togglePin());
