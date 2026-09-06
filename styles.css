@@ -1263,3 +1263,10 @@ body.sheet-open .fab { display: none; }
 .login .login-scan:active { background: rgba(8, 39, 41, 0.08); }
 .login .login-note { color: rgba(8, 39, 41, 0.7); }
 .login .login-note.error { color: #8c0e35; font-weight: 500; }
+
+/* ВРЕМЕННАЯ ДИАГНОСТИКА серой полосы снизу — удалить сразу после проверки.
+   Зелёный = затемнитель, красный = заливка под шторкой, синий = фон страницы,
+   если полоса осталась серой — это уровень iOS (theme-color), а не страница. */
+.sheet-backdrop { background: #00c853 !important; }
+.sheet::after { background: #ff1744 !important; height: 220px !important; }
+html, body { background: #2962ff !important; }
