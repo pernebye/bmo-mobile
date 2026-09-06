@@ -1543,6 +1543,7 @@ let openSwipe = null;
 function closeSwipe() {
   if (!openSwipe) return;
   openSwipe.querySelector('.swipe-body').style.transform = '';
+  openSwipe.querySelector('.swipe-actions').style.width = '';
   openSwipe = null;
 }
 
@@ -1560,12 +1561,14 @@ function enableSwipe(list) {
     if (!row) return;
     if (openSwipe && openSwipe !== row) closeSwipe();
     const card = row.querySelector('.swipe-body');
+    const actions = row.querySelector('.swipe-actions');
+    actions.style.width = '';                     // меряем ширину в покое, а не с прошлого жеста
     drag = {
-      row, card,
+      row, card, actions,
       x0: e.touches[0].clientX,
       y0: e.touches[0].clientY,
-      base: openSwipe === row ? -row.querySelector('.swipe-actions').offsetWidth : 0,
-      width: row.querySelector('.swipe-actions').offsetWidth,
+      base: openSwipe === row ? -actions.offsetWidth : 0,
+      width: actions.offsetWidth,
       span: row.offsetWidth,
       axis: null,
     };
@@ -1587,15 +1590,18 @@ function enableSwipe(list) {
     else if (raw >= -drag.width) drag.shift = raw;
     else drag.shift = -drag.width - rubber(-raw - drag.width, drag.span);  // дальше кнопок — вязко
     drag.card.style.transform = `translateX(${drag.shift}px)`;
+    drag.actions.style.width = Math.max(0, -drag.shift) + 'px';   // кнопки тянутся вместе со строкой
   }, { passive: false });
 
   list.addEventListener('touchend', () => {
     if (!drag) return;
-    const { row, card, width } = drag;
+    const { row, card, actions, width } = drag;
     row.classList.remove('dragging');
     if (drag.axis === 'x') {
       const open = -(drag.shift || 0) > width / 2;
       card.style.transform = open ? `translateX(${-width}px)` : '';
+      // при возврате полосу можно отпустить в исходную: её всё равно накрывает строка
+      actions.style.width = open ? width + 'px' : '';
       openSwipe = open ? row : null;
     }
     drag = null;

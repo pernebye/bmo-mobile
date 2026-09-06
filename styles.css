@@ -1125,10 +1125,18 @@ body.sheet-open .fab { display: none; }
   position: absolute;
   top: 0; right: 0; bottom: 0;
   display: flex;
+  overflow: hidden;
+  transition: width 200ms ease-out;
 }
 
+.swipe.dragging .swipe-actions { transition: none; }
+
+/* делят открывшуюся полосу поровну: 86px — их размер в покое */
 .swipe-act {
-  width: 86px;
+  flex: 1 1 86px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
   border: none;
   background: var(--elevated);
   color: var(--text);
