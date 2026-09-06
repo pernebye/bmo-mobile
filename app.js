@@ -1494,13 +1494,30 @@ document.getElementById('notes-compose').addEventListener('click', () => {
   // страницу и список уезжает за экран. Поднимаем полосу сами, а список держим на месте.
   //
   // Высоту клавиатуры не вычисляем: над ней iOS рисует свою панель со стрелками, и
-  // формула на неё промахивается. Сбрасываем сдвиг, меряем, где полоса оказалась на
-  // самом деле, и двигаем ровно на разницу с нижним краем видимой области.
-  function liftBar() {
-    if (!viewport || !document.body.classList.contains('searching')) return;
+  // формула на неё промахивается. Берём нижний край видимой области как есть.
+  // Считаем покадрово: при прокрутке с открытой клавиатурой iOS сдвигает видимую
+  // область сам, и обновления по событиям отстают — полоса дёргается.
+  let barBottom = 0;      // где низ полосы без сдвига, меряется один раз при фокусе
+  let glueing = false;
+
+  function glueBar() {
+    if (!document.body.classList.contains('searching')) {
+      glueing = false;
+      bar.style.transform = '';
+      return;
+    }
+    const lift = barBottom - (viewport.offsetTop + viewport.height - 8);
+    bar.style.transform = lift > 0 ? `translateY(${-lift}px)` : '';
+    requestAnimationFrame(glueBar);
+  }
+
+  function startGlue() {
+    if (!viewport) return;
     bar.style.transform = '';
-    const lift = bar.getBoundingClientRect().bottom - (viewport.offsetTop + viewport.height - 8);
-    if (lift > 0) bar.style.transform = `translateY(${-lift}px)`;
+    barBottom = bar.getBoundingClientRect().bottom;   // класс searching уже поднял полосу вниз
+    if (glueing) return;
+    glueing = true;
+    requestAnimationFrame(glueBar);
   }
 
   input.addEventListener('input', () => {
@@ -1513,8 +1530,8 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     document.body.classList.add('searching');
     // держим прокрутку, только пока клавиатура выезжает — дальше список свободно листается
     const hold = setInterval(() => window.scrollTo(0, keepY), 16);
-    setTimeout(() => clearInterval(hold), 450);
-    liftBar();
+    setTimeout(() => clearInterval(hold), 350);
+    startGlue();
   });
 
   input.addEventListener('blur', () => {
@@ -1522,10 +1539,7 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     bar.style.transform = '';
   });
 
-  if (viewport) {
-    viewport.addEventListener('resize', liftBar);
-    viewport.addEventListener('scroll', liftBar);
-  }
+
 
   // гасим pointerdown, иначе поле теряет фокус раньше, чем до кнопки дойдёт click
   cancel.addEventListener('pointerdown', (e) => e.preventDefault());
