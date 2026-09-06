@@ -1266,3 +1266,11 @@ body.sheet-open .fab { display: none; }
    экрана — в зоне «домашней полосы» проглядывает фон страницы. Пока шторка открыта,
    красим его в её цвет, иначе снизу видна серая полоса. */
 body.sheet-open { background: var(--surface); }
+
+/* ВРЕМЕННАЯ диагностическая панель — удалить вместе с блоком в app.js */
+.dbg {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+  background: rgba(0,0,0,.85); color: #35ff6d;
+  font: 11px/1.4 ui-monospace, Menlo, Consolas, monospace;
+  padding: 6px 8px; white-space: pre; pointer-events: none;
+}
