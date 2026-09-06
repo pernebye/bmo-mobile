@@ -2003,8 +2003,18 @@ function continueList() {
       if (document.activeElement !== body && document.activeElement !== title) hide();
     }, 80));
   }
-  if (viewport) viewport.addEventListener('resize', place);
-  document.addEventListener('selectionchange', () => { if (!bar.hidden) reflectFmt(); });
+  if (viewport) {
+    viewport.addEventListener('resize', place);
+    viewport.addEventListener('scroll', place);
+  }
+  // Safari прокручивает документ, чтобы показать курсор — тем сильнее, чем ниже строка,
+  // и слой заметки уезжает вместе с ним. Пересчитываем положение после каждого сдвига.
+  window.addEventListener('scroll', () => { if (!bar.hidden) place(); }, { passive: true });
+  document.addEventListener('selectionchange', () => {
+    if (bar.hidden) return;
+    reflectFmt();
+    requestAnimationFrame(place);
+  });
 
   // гасим pointerdown, иначе поле теряет фокус и клавиатура закрывается
   bar.addEventListener('pointerdown', (e) => e.preventDefault());
