@@ -1559,7 +1559,7 @@ body.sheet-open { background: var(--surface); }
    единственный заголовок — «Разделы», иначе кажется, что экран дёргается. */
 .screen[data-screen="notes"] .screen-title,
 .screen[data-screen="notes"] .screen-sub {
-  transition: opacity 380ms ease-out, transform 380ms ease-out;
+  transition: opacity 620ms ease-out, transform 620ms ease-out;
 }
 
 body.searching .screen[data-screen="notes"] .screen-title,
@@ -1570,7 +1570,7 @@ body.searching .screen[data-screen="notes"] .screen-sub {
 }
 
 /* список гаснет раньше, чем клавиатура успеет сжать вьюпорт */
-#notes-list { transition: opacity 380ms ease-out; }
+#notes-list { transition: opacity 620ms ease-out; }
 #notes-list.faded { opacity: 0; pointer-events: none; }
 
 /* разделы проявляются уже после скачка, поэтому его не видно */
@@ -1582,7 +1582,7 @@ body.searching .screen[data-screen="notes"] .screen-sub {
   top: 2px; left: 14px; right: 14px;   /* абсолютный отсчёт идёт от края экрана, боковые отступы задаём сами */
   opacity: 0;
   pointer-events: none;
-  transition: opacity 380ms ease-out;
+  transition: opacity 620ms ease-out;
 }
 
 #search-start.on { opacity: 1; pointer-events: auto; }
