@@ -1195,7 +1195,7 @@ document.getElementById('btn-add').addEventListener('click', () => {
 
 function noteCard(n) {
   const title = esc((n.title || '').trim() || 'Без заголовка');
-  const snippet = esc((n.body || '').replace(/\s+/g, ' ').trim().slice(0, 80));
+  const snippet = esc((n.body || '').replace(/^#\s+/gm, '').replace(/\s+/g, ' ').trim().slice(0, 80));
   return `<div class="swipe">
     <div class="swipe-actions">
       <button class="swipe-act" data-swipe="pin" data-id="${esc(n.id)}">${n.pinned ? 'Открепить' : 'Закрепить'}</button>
@@ -1322,6 +1322,37 @@ function fitTitle() {
   el.style.height = el.scrollHeight + 'px';
 }
 
+// строка, начинающаяся с «# », — заголовок раздела внутри заметки
+const NOTE_HEAD = /^#\s+\S/;
+
+// Редактор — не textarea: каждая строка отдельным блоком, чтобы заголовок было видно
+// крупнее прямо при наборе. В хранилище всё равно уходит обычный текст.
+function lineNode(text) {
+  const line = document.createElement('div');
+  line.className = NOTE_HEAD.test(text) ? 'note-line note-h' : 'note-line';
+  line.textContent = text;
+  return line;
+}
+
+function fillBody(text) {
+  const box = document.getElementById('n-body');
+  box.innerHTML = '';
+  for (const line of (text || '').split('\n')) box.appendChild(lineNode(line));
+  if (!box.firstChild) box.appendChild(lineNode(''));
+}
+
+function readBody() {
+  return [...document.getElementById('n-body').children].map(n => n.textContent).join('\n');
+}
+
+// переключение класса не трогает выделение, поэтому курсор при наборе не прыгает
+function markHeads() {
+  for (const line of document.getElementById('n-body').children) {
+    line.classList.add('note-line');
+    line.classList.toggle('note-h', NOTE_HEAD.test(line.textContent));
+  }
+}
+
 const noteEditor = {
   id: null, pinned: false, saveTimer: null, active: false, creating: null,
   open(note) {
@@ -1329,7 +1360,7 @@ const noteEditor = {
     this.id = note ? note.id : null;
     this.pinned = note ? !!note.pinned : false;
     document.getElementById('n-title').value = note ? (note.title || '') : '';
-    document.getElementById('n-body').value = note ? (note.body || '') : '';
+    fillBody(note ? note.body : '');
     document.getElementById('n-delete').hidden = !note;
     document.getElementById('n-date').textContent = noteDate(note && note.updatedAt);
     this._reflectPin();
@@ -1360,7 +1391,7 @@ const noteEditor = {
     // клавиатуры, и такое сохранение заводило копию заметки
     if (!this.active || state.offline) return;
     const title = document.getElementById('n-title').value;
-    const body = document.getElementById('n-body').value;
+    const body = readBody();
     if (!this.id && !title.trim() && !body.trim()) return;   // пустую новую не создаём
     await this._ensure();
     if (!this.id) return;
@@ -1414,7 +1445,8 @@ const noteEditor = {
     this.id = null;
     // поля чистим здесь же, иначе запоздалый input сохранит текст уже в новую заметку
     document.getElementById('n-title').value = '';
-    document.getElementById('n-body').value = '';
+    fillBody('');
+    document.getElementById('note-outline').hidden = true;
     document.getElementById('note-page').classList.remove('open');
     document.getElementById('app-root').classList.remove('pushed');
   }
@@ -1636,7 +1668,35 @@ document.getElementById('n-title').addEventListener('input', () => { fitTitle();
 document.getElementById('n-title').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); document.getElementById('n-body').focus(); }
 });
-document.getElementById('n-body').addEventListener('input', () => noteEditor.schedule());
+document.getElementById('n-body').addEventListener('input', () => { markHeads(); noteEditor.schedule(); });
+
+// оглавление: список заголовков, тап переносит к нужному разделу
+document.getElementById('n-outline').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const panel = document.getElementById('note-outline');
+  if (!panel.hidden) { panel.hidden = true; return; }
+  panel.innerHTML = '';
+  const heads = [...document.getElementById('n-body').children].filter(l => NOTE_HEAD.test(l.textContent));
+  if (!heads.length) {
+    panel.innerHTML = '<div class="empty">Разделов нет. Начните строку с «# »</div>';
+  }
+  for (const line of heads) {
+    const item = document.createElement('button');
+    item.textContent = line.textContent.replace(/^#\s+/, '');
+    item.addEventListener('click', () => {
+      panel.hidden = true;
+      line.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    });
+    panel.appendChild(item);
+  }
+  panel.hidden = false;
+});
+
+document.getElementById('note-page').addEventListener('click', (e) => {
+  if (!e.target.closest('.note-outline') && !e.target.closest('#n-outline')) {
+    document.getElementById('note-outline').hidden = true;
+  }
+});
 
 // свайп от левого края возвращает назад, как на iOS
 (() => {
