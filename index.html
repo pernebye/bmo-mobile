@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=31">
+<link rel="stylesheet" href="styles.css?v=32">
 </head>
 <body>
 
@@ -95,6 +95,11 @@
   <section class="screen" data-screen="sessions">
     <div class="list" id="sessions-list"></div>
   </section>
+
+  <!-- Заметки -->
+  <section class="screen" data-screen="notes">
+    <div class="list" id="notes-list"></div>
+  </section>
 </main>
 
 <button class="fab" id="btn-add" aria-label="Добавить" hidden><i data-icon="plus"></i></button>
@@ -104,6 +109,7 @@
   <button class="tab" data-target="tasks"><i data-icon="tasks"></i><span>Задачи</span><i class="tab-badge" id="tab-badge" hidden></i></button>
   <button class="tab" data-target="calendar"><i data-icon="calendar"></i><span>Календарь</span></button>
   <button class="tab" data-target="sessions"><i data-icon="terminal"></i><span>Сессии</span></button>
+  <button class="tab" data-target="notes"><i data-icon="edit"></i><span>Заметки</span></button>
 </nav>
 
 <!-- Подробности / создание -->
@@ -190,9 +196,26 @@
   </div>
 </div>
 
+<!-- Редактор заметки -->
+<div class="sheet-backdrop" id="note-backdrop" hidden></div>
+<div class="sheet note-sheet" id="note-sheet" hidden>
+  <div class="sheet-head">
+    <button class="sheet-icon" id="n-close" title="Закрыть"><i data-icon="close"></i></button>
+    <div class="sheet-kind">Заметка</div>
+    <div class="sheet-head-actions">
+      <button class="sheet-icon" id="n-pin" title="Закрепить"><svg class="pin-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>
+      <button class="sheet-icon sheet-icon-danger" id="n-delete" title="Удалить"><i data-icon="trash"></i></button>
+    </div>
+  </div>
+  <div class="sheet-body note-body">
+    <input type="text" id="n-title" placeholder="Заголовок" autocomplete="off">
+    <textarea id="n-body" placeholder="Текст заметки…"></textarea>
+  </div>
+</div>
+
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=31"></script>
-<script src="app.js?v=31"></script>
+<script src="icons.js?v=32"></script>
+<script src="app.js?v=32"></script>
 </body>
 </html>

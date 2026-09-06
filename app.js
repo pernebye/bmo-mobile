@@ -15,7 +15,7 @@ const ORIGIN_FRESH = 'https://api.github.com/repos/pernebye/bmo-mobile/contents/
 let apiBase = location.origin.includes('github.io') ? (localStorage.getItem(KEY_API) || '') : '';
 
 const state = {
-  projects: [], workspaces: [], tasks: [], events: [], sessions: [], activity: {},
+  projects: [], workspaces: [], tasks: [], events: [], sessions: [], notes: [], activity: {},
   screen: 'projects', scope: 'all', workspace: '', search: '',
   calCursor: new Date(), calSelected: '',
   sheet: { kind: 'task', item: null, steps: [] },
@@ -382,6 +382,7 @@ function applyState(data) {
     tasks: data.tasks || [],
     events: data.events || [],
     sessions: data.sessions || [],
+    notes: data.notes || [],
     activity: data.activity || {},
     faviconsVersion: data.faviconsVersion || ''
   });
@@ -412,6 +413,7 @@ function renderAll() {
   renderTasks();
   renderCalendar();
   renderSessions();
+  renderNotes();
   renderCounts();
 }
 
@@ -1132,16 +1134,134 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.dataset.screen === state.screen));
     document.getElementById('screen-title').textContent =
-      { projects: 'Проекты', tasks: 'Задачи', calendar: 'Календарь', sessions: 'Сессии' }[state.screen];
-    document.getElementById('btn-add').hidden = !(state.screen === 'tasks' || state.screen === 'calendar');
+      { projects: 'Проекты', tasks: 'Задачи', calendar: 'Календарь', sessions: 'Сессии', notes: 'Заметки' }[state.screen];
+    document.getElementById('btn-add').hidden = !(state.screen === 'tasks' || state.screen === 'calendar' || state.screen === 'notes');
   });
 });
 
 document.getElementById('btn-add').addEventListener('click', () => {
   if (blocked()) return;
-  if (state.screen === 'calendar') sheet.open('event', null, { at: `${state.calSelected || ymd(new Date())}T10:00` });
+  if (state.screen === 'notes') noteEditor.open(null);
+  else if (state.screen === 'calendar') sheet.open('event', null, { at: `${state.calSelected || ymd(new Date())}T10:00` });
   else sheet.open('task', null);
 });
+
+// --- заметки ---
+const PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>';
+
+function noteCard(n) {
+  const title = esc((n.title || '').trim() || 'Без заголовка');
+  const snippet = esc((n.body || '').replace(/\s+/g, ' ').trim().slice(0, 90));
+  const pin = n.pinned ? `<span class="note-card-pin">${PIN_SVG}</span>` : '';
+  return `<button class="note-card${n.pinned ? ' pinned' : ''}" data-note="${esc(n.id)}">
+    <div class="note-card-head">${pin}<span class="note-card-title">${title}</span><span class="note-card-when">${ago(n.updatedAt)}</span></div>
+    ${snippet ? `<div class="note-card-snippet">${snippet}</div>` : ''}
+  </button>`;
+}
+
+function renderNotes() {
+  const list = document.getElementById('notes-list');
+  const notes = state.notes || [];
+  list.innerHTML = notes.length ? notes.map(noteCard).join('') : '<div class="empty">Заметок пока нет</div>';
+}
+
+function sortNotes() {
+  state.notes.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+  state.notes.sort((a, b) => (a.pinned ? 0 : 1) - (b.pinned ? 0 : 1));
+}
+
+const noteEditor = {
+  id: null, pinned: false, saveTimer: null,
+  open(note) {
+    this.id = note ? note.id : null;
+    this.pinned = note ? !!note.pinned : false;
+    document.getElementById('n-title').value = note ? (note.title || '') : '';
+    document.getElementById('n-body').value = note ? (note.body || '') : '';
+    document.getElementById('n-delete').hidden = !note;
+    this._reflectPin();
+    document.getElementById('note-backdrop').hidden = false;
+    document.getElementById('note-sheet').hidden = false;
+    lockScroll(true);
+    if (!note) setTimeout(() => document.getElementById('n-title').focus(), 60);
+  },
+  async _ensure() {
+    if (this.id || state.offline) return this.id;
+    try {
+      const res = await api('/api/note-create', 'POST', { title: '', body: '' });
+      if (res && res.ok) { this.id = res.note.id; state.notes.unshift(res.note); }
+    } catch {}
+    return this.id;
+  },
+  async save() {
+    if (state.offline) return;
+    const title = document.getElementById('n-title').value;
+    const body = document.getElementById('n-body').value;
+    if (!this.id && !title.trim() && !body.trim()) return;   // пустую новую не создаём
+    await this._ensure();
+    if (!this.id) return;
+    try {
+      const res = await api('/api/note-update', 'POST', { id: this.id, title, body });
+      if (res && res.ok && res.note) {
+        const i = state.notes.findIndex(n => n.id === this.id);
+        if (i >= 0) state.notes[i] = res.note;
+      }
+    } catch {}
+  },
+  schedule() { clearTimeout(this.saveTimer); this.saveTimer = setTimeout(() => this.save(), 700); },
+  _reflectPin() {
+    const btn = document.getElementById('n-pin');
+    btn.classList.toggle('is-pinned', this.pinned);
+    btn.title = this.pinned ? 'Открепить' : 'Закрепить';
+  },
+  async togglePin() {
+    if (blocked()) return;
+    await this._ensure();
+    if (!this.id) return;
+    this.pinned = !this.pinned;
+    this._reflectPin();
+    try {
+      const res = await api('/api/note-update', 'POST', { id: this.id, pinned: this.pinned });
+      if (res && res.ok && res.note) { const i = state.notes.findIndex(n => n.id === this.id); if (i >= 0) state.notes[i] = res.note; }
+    } catch {}
+  },
+  async remove() {
+    if (blocked()) return;
+    if (!this.id) { this._hide(); return; }
+    if (!confirm('Удалить заметку?')) return;
+    clearTimeout(this.saveTimer);
+    try { await api('/api/note-delete', 'POST', { id: this.id }); } catch {}
+    state.notes = state.notes.filter(n => n.id !== this.id);
+    this.id = null;
+    this._hide();
+    renderNotes();
+  },
+  async close() {
+    clearTimeout(this.saveTimer);
+    await this.save();
+    this.id = null;
+    this._hide();
+    sortNotes();
+    renderNotes();
+  },
+  _hide() {
+    document.getElementById('note-backdrop').hidden = true;
+    document.getElementById('note-sheet').hidden = true;
+    lockScroll(false);
+  }
+};
+
+document.getElementById('notes-list').addEventListener('click', (e) => {
+  const card = e.target.closest('.note-card');
+  if (!card) return;
+  const note = (state.notes || []).find(n => n.id === card.dataset.note);
+  if (note) noteEditor.open(note);
+});
+document.getElementById('n-close').addEventListener('click', () => noteEditor.close());
+document.getElementById('note-backdrop').addEventListener('click', () => noteEditor.close());
+document.getElementById('n-pin').addEventListener('click', () => noteEditor.togglePin());
+document.getElementById('n-delete').addEventListener('click', () => noteEditor.remove());
+document.getElementById('n-title').addEventListener('input', () => noteEditor.schedule());
+document.getElementById('n-body').addEventListener('input', () => noteEditor.schedule());
 
 document.getElementById('sheet-backdrop').addEventListener('click', () => sheet.close());
 document.getElementById('f-close').addEventListener('click', () => sheet.close());

@@ -1076,6 +1076,29 @@ body.sheet-open .fab { display: none; }
 .sheet-head { position: relative; padding-top: 16px; touch-action: pan-y; }
 .sheet { will-change: transform; }
 
+/* заметки */
+.note-card {
+  display: block; width: 100%; text-align: left; font-family: inherit; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 13px 15px;
+}
+.note-card:active { background: var(--hover); }
+.note-card-head { display: flex; align-items: center; gap: 7px; }
+.note-card-pin { display: inline-flex; flex-shrink: 0; color: var(--accent); }
+.note-card-pin svg { width: 13px; height: 13px; }
+.note-card-title { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.note-card-when { flex-shrink: 0; font-size: 12px; color: var(--dim); }
+.note-card-snippet { font-size: 13px; color: var(--muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.note-sheet .sheet-kind { flex: 1; }
+#n-pin.is-pinned { color: var(--accent); }
+.pin-svg { width: 20px; height: 20px; }
+.note-body { display: flex; flex-direction: column; gap: 10px; min-height: 55vh; }
+#n-title { border: none; background: none; padding: 0; font-family: inherit; font-size: 20px; font-weight: 600; color: var(--text); outline: none; }
+#n-title::placeholder { color: var(--dim); }
+#n-body { flex: 1; border: none; background: none; padding: 0; font-family: inherit; font-size: 15px; line-height: 1.55; color: var(--text); outline: none; resize: none; }
+#n-body::placeholder { color: var(--dim); }
+
 
 /* задачи из чужих трекеров и комментарии */
 .task-source {

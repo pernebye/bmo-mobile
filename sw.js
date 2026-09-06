@@ -1,6 +1,6 @@
 // Оболочка кэшируется, данные всегда идут по сети — иначе можно увидеть
 // вчерашний список задач и решить, что всё сделано.
-const VERSION = 'v31';
+const VERSION = 'v32';
 const CACHE = 'bmo-shell-' + VERSION;
 const SHELL = ['./', 'index.html', 'styles.css?v=31', 'icons.js?v=31', 'app.js?v=31', 'manifest.webmanifest', 'icon-256.png'];
 
