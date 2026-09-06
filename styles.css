@@ -1501,7 +1501,22 @@ body.sheet-open { background: var(--surface); }
 body.searching .notes-compose { display: none; }
 body.searching .notes-cancel { display: block; }
 body.searching .tabbar { opacity: 0; pointer-events: none; }
-body.searching .notes-bar { bottom: calc(8px + var(--safe-bottom)); }
+
+/* Пока открыта клавиатура, iOS перестаёт держать position: fixed. Чтобы ничего не
+   пересчитывать на каждый кадр, на время ввода список прокручивается внутри своего
+   контейнера ростом с видимую область — страница при этом неподвижна, а полосе
+   достаточно один раз задать top. */
+body.searching .screens {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.searching .notes-bar {
+  position: absolute;
+  bottom: auto;
+}
 
 /* пока открыта заметка, панель уезжает вместе с экраном */
 .app-root.pushed .notes-bar { opacity: 0; }

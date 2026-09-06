@@ -1522,33 +1522,17 @@ document.getElementById('notes-compose').addEventListener('click', () => {
   const bar = document.getElementById('notes-bar');
   const viewport = window.visualViewport;
 
-  // Пока открыта клавиатура, iOS перестаёт держать position: fixed — элемент ведёт
-  // себя как обычный и остаётся внизу страницы. Поэтому на время ввода переводим
-  // полосу в координаты документа и сами ставим её на нижний край видимой области.
-  // visualViewport.pageTop как раз и есть отступ видимой области от начала документа.
-  let barHeight = 0;
-  let placing = false;
+  // Пока открыта клавиатура, iOS перестаёт держать position: fixed. Двигать полосу из
+  // JS на каждый кадр бесполезно: прокрутка идёт на композиторе, а скрипт — на основном
+  // потоке, и полоса всегда на кадр позади пальца. Поэтому на время ввода список
+  // прокручивается внутри .screens ростом с видимую область: страница неподвижна,
+  // полосе хватает одного top, и двигать её больше не нужно.
+  const screens = document.querySelector('.screens');
 
-  function placeBar() {
-    if (!document.body.classList.contains('searching')) {
-      placing = false;
-      bar.style.position = '';
-      bar.style.top = '';
-      bar.style.bottom = '';
-      return;
-    }
-    bar.style.top = (viewport.pageTop + viewport.height - barHeight - 8) + 'px';
-    requestAnimationFrame(placeBar);
-  }
-
-  function startPlacing() {
-    if (!viewport) return;
-    barHeight = bar.offsetHeight;
-    bar.style.position = 'absolute';
-    bar.style.bottom = 'auto';        // с заданным top обе границы растянули бы полосу
-    if (placing) return;
-    placing = true;
-    requestAnimationFrame(placeBar);
+  function fitSearchLayout() {
+    if (!viewport || !document.body.classList.contains('searching')) return;
+    screens.style.height = viewport.height + 'px';
+    bar.style.top = (viewport.offsetTop + viewport.height - bar.offsetHeight - 8) + 'px';
   }
 
   input.addEventListener('input', () => {
@@ -1559,13 +1543,21 @@ document.getElementById('notes-compose').addEventListener('click', () => {
   input.addEventListener('focus', () => {
     const keepY = window.scrollY;
     document.body.classList.add('searching');
-    startPlacing();
-    // придерживаем прокрутку, пока клавиатура выезжает: иначе iOS уводит список к полю
-    const hold = setInterval(() => window.scrollTo(0, keepY), 16);
-    setTimeout(() => clearInterval(hold), 350);
+    fitSearchLayout();
+    screens.scrollTop = keepY;        // прокрутку переносим со страницы в контейнер
+    window.scrollTo(0, 0);
   });
 
-  input.addEventListener('blur', () => document.body.classList.remove('searching'));
+  input.addEventListener('blur', () => {
+    const keepY = screens.scrollTop;
+    document.body.classList.remove('searching');
+    screens.style.height = '';
+    bar.style.top = '';
+    window.scrollTo(0, keepY);        // и обратно, чтобы список остался на том же месте
+  });
+
+  // высота видимой области меняется только когда клавиатура выезжает или прячется
+  if (viewport) viewport.addEventListener('resize', fitSearchLayout);
 
 
 
