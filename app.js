@@ -1409,13 +1409,40 @@ document.getElementById('notes-compose').addEventListener('click', () => {
 (() => {
   const input = document.getElementById('notes-search');
   const cancel = document.getElementById('notes-cancel');
+  const bar = document.getElementById('notes-bar');
+  const viewport = window.visualViewport;
+
+  // Клавиатура не укорачивает layout-вьюпорт, поэтому iOS прокручивает к полю всю
+  // страницу и список уезжает за экран. Поднимаем полосу сами, а список держим на месте.
+  function liftBar() {
+    if (!viewport || !document.body.classList.contains('searching')) return;
+    const keyboard = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+    bar.style.transform = keyboard ? `translateY(${-keyboard}px)` : '';
+  }
 
   input.addEventListener('input', () => {
     state.noteQuery = input.value;
     renderNotes();
   });
-  input.addEventListener('focus', () => document.body.classList.add('searching'));
-  input.addEventListener('blur', () => document.body.classList.remove('searching'));
+
+  input.addEventListener('focus', () => {
+    const keepY = window.scrollY;
+    document.body.classList.add('searching');
+    // держим прокрутку, только пока клавиатура выезжает — дальше список свободно листается
+    const hold = setInterval(() => window.scrollTo(0, keepY), 16);
+    setTimeout(() => clearInterval(hold), 450);
+    liftBar();
+  });
+
+  input.addEventListener('blur', () => {
+    document.body.classList.remove('searching');
+    bar.style.transform = '';
+  });
+
+  if (viewport) {
+    viewport.addEventListener('resize', liftBar);
+    viewport.addEventListener('scroll', liftBar);
+  }
 
   // гасим pointerdown, иначе поле теряет фокус раньше, чем до кнопки дойдёт click
   cancel.addEventListener('pointerdown', (e) => e.preventDefault());
