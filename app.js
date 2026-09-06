@@ -1631,6 +1631,9 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     }
     bar.style.top = (viewport.pageTop + viewport.height - bar.offsetHeight - 8) + 'px';
     clampRoot(viewport.height);
+    // компенсируем в том же событии, что и сжатие вьюпорта: обработчик scroll
+    // срабатывает уже после отрисовки, и сдвиг опаздывал на кадр
+    offsetContent();
   }
 
   // Прокрутку, которую Safari делает сам, гасим встречным сдвигом всего приложения:
