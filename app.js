@@ -1487,39 +1487,11 @@ document.getElementById('notes-compose').addEventListener('click', () => {
 (() => {
   const input = document.getElementById('notes-search');
   const cancel = document.getElementById('notes-cancel');
-  const bar = document.getElementById('notes-bar');
-  const viewport = window.visualViewport;
 
   // Клавиатура не укорачивает layout-вьюпорт, поэтому iOS прокручивает к полю всю
-  // страницу и список уезжает за экран. Поднимаем полосу сами, а список держим на месте.
-  //
-  // Высоту клавиатуры не вычисляем: над ней iOS рисует свою панель со стрелками, и
-  // формула на неё промахивается. Берём нижний край видимой области как есть.
-  // Считаем покадрово: при прокрутке с открытой клавиатурой iOS сдвигает видимую
-  // область сам, и обновления по событиям отстают — полоса дёргается.
-  let barBottom = 0;      // где низ полосы без сдвига, меряется один раз при фокусе
-  let glueing = false;
-
-  function glueBar() {
-    if (!document.body.classList.contains('searching')) {
-      glueing = false;
-      bar.style.transform = '';
-      return;
-    }
-    const lift = barBottom - (viewport.offsetTop + viewport.height - 8);
-    bar.style.transform = lift > 0 ? `translateY(${-lift}px)` : '';
-    requestAnimationFrame(glueBar);
-  }
-
-  function startGlue() {
-    if (!viewport) return;
-    bar.style.transform = '';
-    barBottom = bar.getBoundingClientRect().bottom;   // класс searching уже поднял полосу вниз
-    if (glueing) return;
-    glueing = true;
-    requestAnimationFrame(glueBar);
-  }
-
+  // страницу и список уезжает за экран. Держим прокрутку на месте, пока клавиатура
+  // выезжает; саму полосу не двигаем — фиксированный элемент Safari поднимает сам,
+  // а ручной сдвиг поверх этого только уползал при прокрутке.
   input.addEventListener('input', () => {
     state.noteQuery = input.value;
     renderNotes();
@@ -1531,13 +1503,9 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     // держим прокрутку, только пока клавиатура выезжает — дальше список свободно листается
     const hold = setInterval(() => window.scrollTo(0, keepY), 16);
     setTimeout(() => clearInterval(hold), 350);
-    startGlue();
   });
 
-  input.addEventListener('blur', () => {
-    document.body.classList.remove('searching');
-    bar.style.transform = '';
-  });
+  input.addEventListener('blur', () => document.body.classList.remove('searching'));
 
 
 
