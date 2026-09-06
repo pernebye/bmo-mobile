@@ -1150,6 +1150,7 @@ body.sheet-open .fab { display: none; }
 .swipe .swipe-body {
   position: relative;
   background: var(--surface);
+  border-radius: 0;          /* скруглённые углы не закрывали бы полосу с кнопками */
   transition: transform 200ms ease-out;
 }
 
