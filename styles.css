@@ -1264,9 +1264,7 @@ body.sheet-open .fab { display: none; }
 .login .login-note { color: rgba(8, 39, 41, 0.7); }
 .login .login-note.error { color: #8c0e35; font-weight: 500; }
 
-/* ВРЕМЕННАЯ ДИАГНОСТИКА серой полосы снизу — удалить сразу после проверки.
-   Зелёный = затемнитель, красный = заливка под шторкой, синий = фон страницы,
-   если полоса осталась серой — это уровень iOS (theme-color), а не страница. */
-.sheet-backdrop { background: #00c853 !important; }
-.sheet::after { background: #ff1744 !important; height: 220px !important; }
-html, body { background: #2962ff !important; }
+/* На iOS фиксированные слои (шторка и затемнитель) не достают до физического низа
+   экрана — в зоне «домашней полосы» проглядывает фон страницы. Пока шторка открыта,
+   красим его в её цвет, иначе снизу видна серая полоса. */
+body.sheet-open { background: var(--surface); }
