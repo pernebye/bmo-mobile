@@ -456,30 +456,18 @@ function renderProjects() {
     openTasks[key] = (openTasks[key] || 0) + 1;
   }
 
-  list.innerHTML = '<div class="group">' + items.map(project => {
-    const tasks = openTasks[project.id];
-    const hasDev = (project.devCommands || []).length > 0;
-    return `
-      <article class="card" data-project="${esc(project.id)}">
-        <div class="card-head">
-          ${avatarHtml(project, colorFor(project), project.name)}
-          <div class="card-titles">
-            <div class="card-name">${esc(project.name)}</div>
-            <div class="card-sub">${ago(lastTouch(project))}${tasks ? ` · ${tasks} задач` : ''}</div>
-          </div>
-          ${project.status === 'active' ? '<span class="badge badge-active">в работе</span>' : ''}
-        </div>
-        <div class="card-actions">
-          <button class="btn btn-run" data-act="launch"><i data-icon="claude"></i>Claude</button>
-          <div class="card-extra">
-            ${hasDev ? '<button class="btn btn-narrow btn-icon-only" data-act="dev" title="Dev-серверы"><i data-icon="play"></i></button>' : ''}
-            ${project.prodUrl ? `<a class="btn btn-narrow btn-icon-only" href="${esc(project.prodUrl)}" target="_blank" rel="noopener" title="Сайт"><i data-icon="globe"></i></a>` : ''}
-          </div>
-        </div>
-      </article>
-    `;
-  }).join('') + '</div>';
-  mountIcons(list);
+  list.innerHTML = items.map(project => appTile(project, openTasks[project.id])).join('');
+}
+
+function appTile(project, tasks) {
+  const icon = state.favicons[project.id];
+  const face = icon
+    ? `<span class="app-icon"><img src="${icon}" alt=""></span>`
+    : `<span class="app-icon" style="background:${esc(colorFor(project))}">${esc(initial(project.name))}</span>`;
+  return `<button class="app-tile" data-project="${esc(project.id)}">
+    <span class="app-shell">${face}${tasks ? `<span class="app-badge">${tasks}</span>` : ''}</span>
+    <span class="app-name">${esc(project.name)}</span>
+  </button>`;
 }
 
 // --- задачи ---
@@ -1014,24 +1002,113 @@ function blocked() {
   return true;
 }
 
-document.getElementById('projects-list').addEventListener('click', async (e) => {
-  const card = e.target.closest('[data-project]');
-  const action = e.target.closest('[data-act]')?.dataset.act;
-  if (!card || !action || blocked()) return;
-  const projectId = card.dataset.project;
-  const name = state.projects.find(p => p.id === projectId)?.name || '';
+async function runProject(project, action) {
+  if (blocked()) return;
   try {
     if (action === 'launch') {
-      await api('/api/launch', 'POST', { projectId });
-      toast(`Claude запускается: ${name}`);
-    } else if (action === 'dev') {
-      await api('/api/dev', 'POST', { projectId });
-      toast(`Dev-серверы: ${name}`);
+      await api('/api/launch', 'POST', { projectId: project.id });
+      toast(`Claude запускается: ${project.name}`);
+    } else {
+      await api('/api/dev', 'POST', { projectId: project.id });
+      toast(`Dev-серверы: ${project.name}`);
     }
   } catch {
     toast('Не получилось — компьютер недоступен');
   }
+}
+
+document.getElementById('projects-list').addEventListener('click', (e) => {
+  if (peekJustClosed) return;                      // палец отпустили после долгого нажатия
+  const tile = e.target.closest('[data-project]');
+  if (!tile) return;
+  const project = state.projects.find(p => p.id === tile.dataset.project);
+  if (project) runProject(project, 'launch');
 });
+
+// Долгое нажатие: фон размывается, плитка поднимается, снизу панель действий.
+// Нативное меню iOS вебу недоступно, поэтому повторяем его поведение вручную.
+let peekJustClosed = false;
+
+(() => {
+  const list = document.getElementById('projects-list');
+  const peek = document.getElementById('peek');
+  const tileBox = document.getElementById('peek-tile');
+  const menu = document.getElementById('peek-menu');
+  let press = null;
+
+  function open(tile, project) {
+    const rect = tile.getBoundingClientRect();
+    tileBox.innerHTML = tile.innerHTML;
+    tileBox.style.left = `${rect.left}px`;
+    tileBox.style.top = `${rect.top}px`;
+    tileBox.style.width = `${rect.width}px`;
+
+    menu.innerHTML = '';
+    const actions = [['launch', 'Открыть Claude', ICONS.claude]];
+    if ((project.devCommands || []).length) actions.push(['dev', 'Dev-серверы', ICONS.play]);
+    if (project.prodUrl) actions.push(['site', 'Открыть сайт', ICONS.globe]);
+    for (const [act, label, icon] of actions) {
+      const item = document.createElement('button');
+      item.innerHTML = `<span>${label}</span>${icon}`;
+      item.addEventListener('click', () => {
+        close();
+        if (act === 'site') window.open(project.prodUrl, '_blank', 'noopener');
+        else runProject(project, act);
+      });
+      menu.appendChild(item);
+    }
+
+    peek.hidden = false;
+    // меню под плиткой, а если внизу не помещается — над ней
+    const below = rect.bottom + 12;
+    const height = menu.offsetHeight;
+    const fits = below + height < window.innerHeight - 12;
+    menu.style.top = fits ? `${below}px` : `${Math.max(12, rect.top - 12 - height)}px`;
+    menu.style.left = `${Math.max(12, Math.min(rect.left + rect.width / 2 - menu.offsetWidth / 2,
+      window.innerWidth - menu.offsetWidth - 12))}px`;
+    requestAnimationFrame(() => peek.classList.add('open'));
+  }
+
+  function close() {
+    peek.classList.remove('open');
+    peekJustClosed = true;
+    setTimeout(() => { peek.hidden = true; peekJustClosed = false; }, 180);
+  }
+
+  list.addEventListener('touchstart', (e) => {
+    const tile = e.target.closest('[data-project]');
+    if (!tile) return;
+    const project = state.projects.find(p => p.id === tile.dataset.project);
+    if (!project) return;
+    press = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      timer: setTimeout(() => { press = null; open(tile, project); }, 420),
+    };
+  }, { passive: true });
+
+  list.addEventListener('touchmove', (e) => {
+    if (!press) return;
+    const moved = Math.abs(e.touches[0].clientX - press.x) + Math.abs(e.touches[0].clientY - press.y);
+    if (moved > 10) { clearTimeout(press.timer); press = null; }
+  }, { passive: true });
+
+  list.addEventListener('touchend', () => {
+    if (press) { clearTimeout(press.timer); press = null; }
+  });
+
+  // на компьютере то же меню открывается правой кнопкой — удобно проверять
+  list.addEventListener('contextmenu', (e) => {
+    const tile = e.target.closest('[data-project]');
+    if (!tile) return;
+    e.preventDefault();
+    const project = state.projects.find(p => p.id === tile.dataset.project);
+    if (project) open(tile, project);
+  });
+
+  document.getElementById('peek-bg').addEventListener('click', close);
+  document.getElementById('peek-tile').addEventListener('click', close);
+})();
 
 document.getElementById('sessions-list').addEventListener('click', async (e) => {
   const card = e.target.closest('[data-session]');

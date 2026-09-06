@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=73">
+<link rel="stylesheet" href="styles.css?v=74">
 </head>
 <body>
 
@@ -66,7 +66,7 @@
       <input type="search" id="project-search" placeholder="Поиск проекта" autocomplete="off">
     </div>
     <div class="chips" id="workspace-chips"></div>
-    <div class="list" id="projects-list"></div>
+    <div class="apps" id="projects-list"></div>
   </section>
 
   <!-- Задачи -->
@@ -229,9 +229,16 @@
   </div>
 </div>
 
+<!-- Меню действий по долгому нажатию: фон размывается, плитка поднимается -->
+<div class="peek" id="peek" hidden>
+  <div class="peek-bg" id="peek-bg"></div>
+  <div class="peek-tile" id="peek-tile"></div>
+  <div class="peek-menu" id="peek-menu"></div>
+</div>
+
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=73"></script>
-<script src="app.js?v=73"></script>
+<script src="icons.js?v=74"></script>
+<script src="app.js?v=74"></script>
 </body>
 </html>
