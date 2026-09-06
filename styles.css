@@ -1651,4 +1651,6 @@ body.searching .notes-bar { bottom: calc(8px + var(--safe-bottom)); }
 
 /* пока открыта заметка, панель уезжает вместе с экраном */
 .app-root.pushed .notes-bar { opacity: 0; }
-.notes-bar { transition: opacity 180ms ease-out; }
+
+/* top меняется один раз — когда выехала клавиатура; пусть полоса поднимется плавно */
+.notes-bar { transition: opacity 180ms ease-out, top 220ms ease-out; }

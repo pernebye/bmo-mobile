@@ -1620,13 +1620,15 @@ document.getElementById('notes-compose').addEventListener('click', () => {
   });
 
   input.addEventListener('focus', () => {
-    const keepY = window.scrollY;
     typing = true;
     document.body.classList.add('searching');
-    // придерживаем прокрутку, пока клавиатура выезжает: иначе iOS уводит список к полю
-    const hold = setInterval(() => window.scrollTo(0, keepY), 16);
-    setTimeout(() => clearInterval(hold), 350);
-    placeBar();
+    // Сразу закрепляем полосу там, где она и так видна. Раньше здесь удерживалась
+    // прокрутка, и это дралось с iOS: список прыгал вниз и уезжал обратно. Теперь
+    // прокручивать нечего — поле уже в видимой части, а с выездом клавиатуры полоса
+    // просто поднимется на своё место.
+    bar.style.position = 'absolute';
+    bar.style.bottom = 'auto';
+    bar.style.top = (window.scrollY + window.innerHeight - bar.offsetHeight - 8) + 'px';
   });
 
   input.addEventListener('blur', () => {
