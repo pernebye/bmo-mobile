@@ -1553,6 +1553,19 @@ body.sheet-open .fab { display: none; }
 body.sheet-open { background: var(--surface); }
 
 /* Корзина заметок */
+/* Список и стартовый экран поиска лежат друг на друге и меняются плавным
+   проявлением: пока список не виден, скачок вьюпорта под клавиатуру глазу не заметен. */
+.notes-stack { position: relative; }
+
+.notes-stack > .list { transition: opacity 200ms ease-out; }
+
+#search-start {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+}
+
+.list.faded { opacity: 0; pointer-events: none; }
+
 .notes-trash-toggle {
   width: 100%;
   margin-top: 6px;

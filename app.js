@@ -1343,6 +1343,41 @@ function trashCard(n) {
   </div>`;
 }
 
+// Стартовый экран поиска: оглавление по всем заметкам. Пустой запрос показывать нечем,
+// а разделы — то, по чему обычно и ищут.
+function renderSearchStart() {
+  const box = document.getElementById('search-start');
+  const rows = [];
+  for (const note of state.notes) {
+    for (const line of (note.body || '').split('\n')) {
+      if (NOTE_HEAD.test(line)) rows.push({ note, head: line.replace(/^#\s+/, '') });
+    }
+  }
+  if (!rows.length) {
+    box.innerHTML = '<div class="empty">Разделов пока нет. Начните строку в заметке '
+      + 'с «# » — она станет заголовком и попадёт сюда.</div>';
+    return;
+  }
+  box.innerHTML = `<div class="group-title">Разделы<span>${rows.length}</span></div><div class="group">`
+    + rows.map(r => `<button class="note-card" data-jump="${esc(r.note.id)}" data-head="${esc(r.head)}">
+        <div class="note-card-title">${esc(r.head)}</div>
+        <div class="note-card-sub">${esc((r.note.title || '').trim() || 'Без заголовка')}</div>
+      </button>`).join('')
+    + '</div>';
+}
+
+// какой из двух списков показывать: пустой поиск — разделы, иначе результаты
+function reflectSearch() {
+  const searching = document.body.classList.contains('searching');
+  const empty = !(state.noteQuery || '').trim();
+  const start = document.getElementById('search-start');
+  const list = document.getElementById('notes-list');
+  const showStart = searching && empty;
+  if (showStart) renderSearchStart();
+  start.hidden = !showStart;
+  list.classList.toggle('faded', showStart);
+}
+
 function renderNotes() {
   const list = document.getElementById('notes-list');
   const all = state.notes || [];
@@ -1376,6 +1411,7 @@ function renderNotes() {
     if (state.showTrash) html += `<div class="group">${trash.map(trashCard).join('')}</div>`;
   }
   list.innerHTML = html;
+  reflectSearch();
 }
 
 function sortNotes() {
@@ -1659,6 +1695,24 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     renderNotes();
   });
 
+  // переход к разделу прямо со стартового экрана поиска
+  document.getElementById('search-start').addEventListener('click', (e) => {
+    const item = e.target.closest('[data-jump]');
+    if (!item) return;
+    const note = state.notes.find(n => n.id === item.dataset.jump);
+    if (!note) return;
+    input.blur();
+    document.body.classList.remove('searching');
+    reflectSearch();
+    noteEditor.open(note);
+    const head = item.dataset.head;
+    setTimeout(() => {
+      const line = [...document.getElementById('n-body').children]
+        .find(l => l.textContent.replace(/^#\s+/, '') === head);
+      if (line) line.scrollIntoView({ block: 'start' });
+    }, 520);
+  });
+
   input.addEventListener('focus', () => {
     typing = true;
     document.body.classList.add('searching');
@@ -1666,10 +1720,10 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     // прокрутки, и Safari уводит её к полю. Пока идёт ввод, прокрутку запрещаем —
     // тогда уводить нечего, и список стоит на месте.
     document.body.classList.add('typing');
+    reflectSearch();
     baseHeight = window.innerHeight;
     // лучше промахнуться вверх: если поле окажется под клавиатурой, Safari прокрутит страницу
     clampRoot(window.innerHeight - (keyboard || Math.round(window.innerHeight * 0.52)));
-    trace('focus');
     // Сразу закрепляем полосу там, где она и так видна. Раньше здесь удерживалась
     // прокрутка, и это дралось с iOS: список прыгал вниз и уезжал обратно. Теперь
     // прокручивать нечего — поле уже в видимой части, а с выездом клавиатуры полоса
@@ -1705,9 +1759,9 @@ document.getElementById('notes-compose').addEventListener('click', () => {
   cancel.addEventListener('click', () => {
     input.value = '';
     state.noteQuery = '';
-    renderNotes();
     input.blur();
     document.body.classList.remove('searching');
+    renderNotes();
   });
 })();
 
@@ -2056,47 +2110,3 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && to
   // адрес туннеля меняется вместе с перезагрузкой компьютера
   setInterval(resolveApi, 300000);
 })();
-
-// ВРЕМЕННАЯ лента замеров — снять после починки.
-// Главное здесь: docH (высота документа) и max (запас прокрутки = docH - iH).
-// Если max больше нуля, Safari есть куда прокручивать, и он это сделает.
-function trace(reason) {
-  const vv = window.visualViewport;
-  const box = document.getElementById('trace') || (() => {
-    const el = document.createElement('div');
-    el.id = 'trace';
-    el.style.cssText = 'position:absolute;left:6px;right:6px;z-index:9999;background:rgba(0,0,0,.9);'
-      + 'color:#35ff6d;font:10px/1.25 ui-monospace,Menlo,monospace;padding:4px 6px;white-space:pre';
-    document.body.appendChild(el);
-    return el;
-  })();
-  const root = document.getElementById('app-root');
-  const bar = document.getElementById('notes-bar');
-  const kb = Number(localStorage.getItem('bmo-kb') || 0);
-  const rows = [`${reason} kb=${kb}`, '    t   sY   iH   vH  docH rootH  max barT  hdr'];
-  const started = Date.now();
-  const num = (v, w) => String(Math.round(v)).padStart(w);
-  const sample = () => {
-    const head = document.querySelector('#notes-list .group-title');
-    const docH = document.documentElement.scrollHeight;
-    rows.push(num(Date.now() - started, 5) + num(scrollY, 5) + num(innerHeight, 5)
-      + num(vv.height, 5) + num(docH, 6) + num(root.offsetHeight, 6)
-      + num(docH - innerHeight, 5) + num(parseFloat(bar.style.top || 0), 5)
-      + num(head ? head.getBoundingClientRect().top : 0, 5));
-    // кто именно тянет документ вниз
-    let worst = null;
-    let worstBottom = 0;
-    for (const el of document.body.children) {
-      const cs = getComputedStyle(el);
-      if (cs.display === 'none' || cs.position === 'fixed') continue;
-      const bottom = el.offsetTop + el.offsetHeight;
-      if (bottom > worstBottom) { worstBottom = bottom; worst = el; }
-    }
-    box.textContent = rows.join('\n')
-      + '\nвыше всех: ' + (worst ? (worst.id || worst.className) : '-')
-      + ' до ' + Math.round(worstBottom)
-      + '  bodyH ' + Math.round(document.body.getBoundingClientRect().height);
-    box.style.top = (parseFloat(bar.style.top || 0) - 8 - rows.length * 13) + 'px';
-  };
-  for (const ms of [0, 40, 80, 120, 180, 260, 400, 700, 1200]) setTimeout(sample, ms);
-}
