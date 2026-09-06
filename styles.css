@@ -1648,13 +1648,14 @@ body.searching .notes-cancel { display: flex; }
 body.searching .tabbar { opacity: 0; pointer-events: none; }
 
 /* пока набирают в поиске, страница не прокручивается: иначе Safari уводит её к полю */
-html.typing { overflow: hidden; }
-body.typing { overflow: hidden; min-height: 0; }
+/* Safari прокручивает страницу к полю служебно, в обход overflow. Не мешаем ему,
+   а возвращаем содержимое на место встречным сдвигом — см. app.js. */
+.app-root { will-change: auto; }
 
 body.searching .notes-bar { bottom: calc(8px + var(--safe-bottom)); }
 
 /* пока открыта заметка, панель уезжает вместе с экраном */
-.app-root.pushed .notes-bar { opacity: 0; }
+.app-root.pushed ~ .notes-bar { opacity: 0; }
 
 /* top меняется один раз — когда выехала клавиатура; пусть полоса поднимется плавно */
 .notes-bar { transition: opacity 180ms ease-out, top 220ms ease-out; }

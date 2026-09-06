@@ -1627,8 +1627,17 @@ document.getElementById('notes-compose').addEventListener('click', () => {
       try { localStorage.setItem(KB_KEY, keyboard); } catch {}
     }
     bar.style.top = (viewport.pageTop + viewport.height - bar.offsetHeight - 8) + 'px';
-    // документ ровно в высоту видимой области: тогда прокручивать нечего
-    document.body.style.height = viewport.height + 'px';
+  }
+
+  // Прокрутку, которую Safari делает сам, гасим встречным сдвигом всего приложения:
+  // страница уезжает на scrollY, содержимое возвращается на столько же, глазу — покой.
+  // Полоса поиска лежит вне .app-root, поэтому её этот сдвиг не трогает.
+  const appRoot = document.getElementById('app-root');
+
+  function offsetContent() {
+    appRoot.style.transform = typing && window.scrollY
+      ? `translateY(${Math.round(window.scrollY)}px)`
+      : '';
   }
 
   input.addEventListener('input', () => {
@@ -1642,14 +1651,7 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     // Клавиатура укорачивает layout-вьюпорт (852 -> 449), у страницы появляется ход
     // прокрутки, и Safari уводит её к полю. Пока идёт ввод, прокрутку запрещаем —
     // тогда уводить нечего, и список стоит на месте.
-    const keepY = window.scrollY;
     document.body.classList.add('typing');
-    // overflow на body уходит вьюпорту, и сам body перестаёт обрезать: гасим на html
-    document.documentElement.classList.add('typing');
-    // body тянется на 100vh, а вьюпорт под клавиатурой становится ниже — отсюда и берётся
-    // ход прокрутки, который Safari выбирает до упора. Убираем его заранее.
-    document.body.style.height = (window.innerHeight - (keyboard || Math.round(window.innerHeight * 0.45))) + 'px';
-    window.scrollTo(0, keepY);
     trace('focus');
     // Сразу закрепляем полосу там, где она и так видна. Раньше здесь удерживалась
     // прокрутка, и это дралось с iOS: список прыгал вниз и уезжал обратно. Теперь
@@ -1664,8 +1666,7 @@ document.getElementById('notes-compose').addEventListener('click', () => {
   input.addEventListener('blur', () => {
     typing = false;
     document.body.classList.remove('typing');
-    document.documentElement.classList.remove('typing');
-    document.body.style.height = '';
+    appRoot.style.transform = '';
     bar.style.position = '';
     bar.style.top = '';
     bar.style.bottom = '';
@@ -1673,6 +1674,7 @@ document.getElementById('notes-compose').addEventListener('click', () => {
 
   // жест прокрутки убирает клавиатуру — дальше список листается как обычно
   window.addEventListener('touchmove', () => { if (typing) input.blur(); }, { passive: true });
+  window.addEventListener('scroll', offsetContent, { passive: true });
 
   // единственный момент, когда полосу надо поставить: клавиатура выехала
   if (viewport) viewport.addEventListener('resize', placeBar);
