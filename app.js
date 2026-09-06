@@ -1179,10 +1179,10 @@ const noteEditor = {
     document.getElementById('n-body').value = note ? (note.body || '') : '';
     document.getElementById('n-delete').hidden = !note;
     this._reflectPin();
-    document.getElementById('note-backdrop').hidden = false;
-    document.getElementById('note-sheet').hidden = false;
-    lockScroll(true);
-    if (!note) setTimeout(() => document.getElementById('n-title').focus(), 60);
+    document.getElementById('note-page').classList.add('open');
+    document.getElementById('app-root').classList.add('pushed');
+    // фокус после переезда, иначе клавиатура дёргает анимацию
+    if (!note) setTimeout(() => document.getElementById('n-title').focus(), 300);
   },
   async _ensure() {
     if (this.id || state.offline) return this.id;
@@ -1244,9 +1244,8 @@ const noteEditor = {
     renderNotes();
   },
   _hide() {
-    document.getElementById('note-backdrop').hidden = true;
-    document.getElementById('note-sheet').hidden = true;
-    lockScroll(false);
+    document.getElementById('note-page').classList.remove('open');
+    document.getElementById('app-root').classList.remove('pushed');
   }
 };
 
@@ -1256,12 +1255,37 @@ document.getElementById('notes-list').addEventListener('click', (e) => {
   const note = (state.notes || []).find(n => n.id === card.dataset.note);
   if (note) noteEditor.open(note);
 });
-document.getElementById('n-close').addEventListener('click', () => noteEditor.close());
-document.getElementById('note-backdrop').addEventListener('click', () => noteEditor.close());
+document.getElementById('n-back').addEventListener('click', () => noteEditor.close());
 document.getElementById('n-pin').addEventListener('click', () => noteEditor.togglePin());
 document.getElementById('n-delete').addEventListener('click', () => noteEditor.remove());
 document.getElementById('n-title').addEventListener('input', () => noteEditor.schedule());
 document.getElementById('n-body').addEventListener('input', () => noteEditor.schedule());
+
+// свайп от левого края возвращает назад, как на iOS
+(() => {
+  const page = document.getElementById('note-page');
+  const root = document.getElementById('app-root');
+  let sw = null;
+  page.addEventListener('touchstart', (e) => {
+    if (!page.classList.contains('open') || e.touches[0].clientX > 28) return;
+    sw = { x0: e.touches[0].clientX, dx: 0 };
+    page.style.transition = root.style.transition = 'none';
+  }, { passive: true });
+  page.addEventListener('touchmove', (e) => {
+    if (!sw) return;
+    sw.dx = Math.max(0, e.touches[0].clientX - sw.x0);
+    const frac = sw.dx / window.innerWidth;
+    page.style.transform = `translateX(${sw.dx}px)`;
+    root.style.transform = `translateX(${-22 + 22 * frac}%)`;
+  }, { passive: true });
+  page.addEventListener('touchend', () => {
+    if (!sw) return;
+    const dx = sw.dx; sw = null;
+    page.style.transition = root.style.transition = '';
+    page.style.transform = root.style.transform = '';   // вернётся к классам с анимацией
+    if (dx > window.innerWidth * 0.35) noteEditor.close();
+  });
+})();
 
 document.getElementById('sheet-backdrop').addEventListener('click', () => sheet.close());
 document.getElementById('f-close').addEventListener('click', () => sheet.close());

@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=32">
+<link rel="stylesheet" href="styles.css?v=33">
 </head>
 <body>
 
@@ -49,6 +49,7 @@
   </div>
 </div>
 
+<div class="app-root" id="app-root">
 <header class="topbar">
   <div class="topbar-title" id="screen-title">Проекты</div>
   <span class="offline-pill" id="offline-pill" hidden>только просмотр</span>
@@ -111,6 +112,23 @@
   <button class="tab" data-target="sessions"><i data-icon="terminal"></i><span>Сессии</span></button>
   <button class="tab" data-target="notes"><i data-icon="edit"></i><span>Заметки</span></button>
 </nav>
+</div><!-- /app-root -->
+
+<!-- Заметка: отдельный экран, выезжает справа (iOS push) -->
+<div class="note-page" id="note-page">
+  <header class="note-nav">
+    <button class="note-back" id="n-back"><i data-icon="chevron-left"></i><span>Назад</span></button>
+    <div class="note-nav-title">Заметка</div>
+    <div class="note-nav-actions">
+      <button class="note-nav-btn" id="n-pin" title="Закрепить"><svg class="pin-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>
+      <button class="note-nav-btn danger" id="n-delete" title="Удалить"><i data-icon="trash"></i></button>
+    </div>
+  </header>
+  <div class="note-page-body">
+    <input type="text" id="n-title" placeholder="Заголовок" autocomplete="off">
+    <textarea id="n-body" placeholder="Текст заметки…"></textarea>
+  </div>
+</div>
 
 <!-- Подробности / создание -->
 <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
@@ -196,26 +214,9 @@
   </div>
 </div>
 
-<!-- Редактор заметки -->
-<div class="sheet-backdrop" id="note-backdrop" hidden></div>
-<div class="sheet note-sheet" id="note-sheet" hidden>
-  <div class="sheet-head">
-    <button class="sheet-icon" id="n-close" title="Закрыть"><i data-icon="close"></i></button>
-    <div class="sheet-kind">Заметка</div>
-    <div class="sheet-head-actions">
-      <button class="sheet-icon" id="n-pin" title="Закрепить"><svg class="pin-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>
-      <button class="sheet-icon sheet-icon-danger" id="n-delete" title="Удалить"><i data-icon="trash"></i></button>
-    </div>
-  </div>
-  <div class="sheet-body note-body">
-    <input type="text" id="n-title" placeholder="Заголовок" autocomplete="off">
-    <textarea id="n-body" placeholder="Текст заметки…"></textarea>
-  </div>
-</div>
-
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=32"></script>
-<script src="app.js?v=32"></script>
+<script src="icons.js?v=33"></script>
+<script src="app.js?v=33"></script>
 </body>
 </html>
