@@ -18,7 +18,6 @@
   --backdrop: rgba(0, 0, 0, 0.55);
   --shadow: rgba(0, 0, 0, 0.45);
   --on-accent: #fff;
-  --float: #232329;
   --radius: 12px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -45,7 +44,6 @@
     --bar-bg: rgba(246, 246, 247, 0.92);
     --backdrop: rgba(20, 20, 30, 0.35);
     --shadow: rgba(20, 20, 30, 0.18);
-    --float: #e3e3e9;
   }
 }
 
@@ -1404,7 +1402,7 @@ body.sheet-open { background: var(--surface); }
   height: 44px;
   padding: 0 14px;
   border-radius: 22px;
-  background: var(--float);
+  background: var(--elevated);
   color: var(--dim);
 }
 
@@ -1426,7 +1424,7 @@ body.sheet-open { background: var(--surface); }
   display: flex; align-items: center; justify-content: center;
   border: none;
   border-radius: 50%;
-  background: var(--float);
+  background: var(--elevated);
   color: var(--accent);
 }
 
