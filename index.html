@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=98">
+<link rel="stylesheet" href="styles.css?v=99">
 </head>
 <body>
 
@@ -144,6 +144,23 @@
     <div id="n-body" contenteditable="plaintext-only" data-placeholder="Текст заметки…"></div>
   </div>
   <div class="note-outline" id="note-outline" hidden></div>
+
+  <div class="fmt-bar" id="fmt-bar" hidden>
+    <button class="fmt-btn" data-fmt="head" title="Заголовок">Aa</button>
+    <button class="fmt-btn" data-fmt="check" title="Пункт списка"><i data-icon="check-circle"></i></button>
+    <button class="fmt-btn" data-fmt="link" title="Ссылка"><i data-icon="link"></i></button>
+    <button class="fmt-btn fmt-done" data-fmt="done" title="Убрать клавиатуру"><i data-icon="check"></i></button>
+  </div>
+</div>
+
+<div class="link-sheet" id="link-sheet" hidden>
+  <div class="link-head">
+    <button class="note-nav-btn" id="link-cancel"><i data-icon="close"></i></button>
+    <div class="note-nav-title">Ссылка</div>
+    <button class="note-nav-btn" id="link-apply"><i data-icon="check"></i></button>
+  </div>
+  <label class="link-field">Адрес<input type="text" id="link-url" placeholder="https://" autocomplete="off"></label>
+  <label class="link-field">Название<input type="text" id="link-name" placeholder="Как показать" autocomplete="off"></label>
 </div>
 
 <!-- Подробности / создание -->
@@ -239,7 +256,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=98"></script>
-<script src="app.js?v=98"></script>
+<script src="icons.js?v=99"></script>
+<script src="app.js?v=99"></script>
 </body>
 </html>

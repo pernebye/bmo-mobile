@@ -1450,10 +1450,24 @@ const NOTE_HEAD = /^#\s+\S/;
 
 // Редактор — не textarea: каждая строка отдельным блоком, чтобы заголовок было видно
 // крупнее прямо при наборе. В хранилище всё равно уходит обычный текст.
+const NOTE_CHECK = /^- \[( |x)\] /;
+
 function lineNode(text) {
   const line = document.createElement('div');
-  line.className = NOTE_HEAD.test(text) ? 'note-line note-h' : 'note-line';
-  line.textContent = text;
+  line.className = 'note-line';
+  const check = text.match(NOTE_CHECK);
+  const head = text.match(/^#\s+/);
+  const mark = check ? check[0] : (head ? head[0] : '');
+  if (check) line.classList.add('note-check', ...(check[1] === 'x' ? ['done'] : []));
+  else if (head) line.classList.add('note-h');
+  if (mark) {
+    const span = document.createElement('span');
+    span.className = 'md';
+    span.contentEditable = 'false';
+    span.textContent = mark;
+    line.appendChild(span);
+  }
+  line.appendChild(document.createTextNode(text.slice(mark.length)));
   return line;
 }
 
@@ -1470,10 +1484,68 @@ function readBody() {
 
 // переключение класса не трогает выделение, поэтому курсор при наборе не прыгает
 function markHeads() {
-  for (const line of document.getElementById('n-body').children) {
+  const box = document.getElementById('n-body');
+  for (const line of box.children) {
     line.classList.add('note-line');
-    line.classList.toggle('note-h', NOTE_HEAD.test(line.textContent));
+    const text = line.textContent;
+    // строку с маркером перерисовываем целиком: маркер должен уйти в неизменяемый span
+    const wanted = NOTE_CHECK.test(text) || /^#\s+/.test(text);
+    const has = line.querySelector('.md');
+    if (wanted && !has) {
+      line.replaceWith(lineNode(text));
+      continue;
+    }
+    if (!wanted && has) {
+      line.replaceWith(lineNode(text));
+      continue;
+    }
+    line.classList.toggle('note-h', /^#\s+/.test(text));
+    line.classList.toggle('note-check', NOTE_CHECK.test(text));
+    line.classList.toggle('done', /^- \[x\] /.test(text));
   }
+}
+
+// строка, в которой сейчас курсор
+function currentLine() {
+  const sel = document.getSelection();
+  if (!sel || !sel.anchorNode) return null;
+  let node = sel.anchorNode;
+  while (node && node.parentElement && !node.parentElement.id) {
+    if (node.parentElement.id === 'n-body') return node;
+    node = node.parentElement;
+  }
+  return node && node.parentElement && node.parentElement.id === 'n-body' ? node : null;
+}
+
+// переключение маркера в начале строки
+function toggleMark(kind) {
+  const line = currentLine();
+  if (!line) return;
+  const text = line.textContent;
+  const head = /^#\s+/.test(text);
+  const check = NOTE_CHECK.test(text);
+  let plain = text.replace(/^#\s+/, '').replace(NOTE_CHECK, '');
+  let next = plain;
+  if (kind === 'head' && !head) next = '# ' + plain;
+  if (kind === 'check' && !check) next = '- [ ] ' + plain;
+  const fresh = lineNode(next);
+  line.replaceWith(fresh);
+  // курсор в конец строки
+  const sel = document.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(fresh);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+  noteEditor.schedule();
+  reflectFmt();
+}
+
+function reflectFmt() {
+  const line = currentLine();
+  const text = line ? line.textContent : '';
+  document.querySelector('[data-fmt=\"head\"]').classList.toggle('on', /^#\s+/.test(text));
+  document.querySelector('[data-fmt=\"check\"]').classList.toggle('on', NOTE_CHECK.test(text));
 }
 
 const noteEditor = {
@@ -1866,7 +1938,120 @@ document.getElementById('n-title').addEventListener('input', () => { fitTitle();
 document.getElementById('n-title').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); document.getElementById('n-body').focus(); }
 });
-document.getElementById('n-body').addEventListener('input', () => { markHeads(); noteEditor.schedule(); });
+document.getElementById('n-body').addEventListener('input', () => {
+  markHeads();
+  continueList();
+  noteEditor.schedule();
+});
+
+// Enter в списке продолжает список: новая пустая строка получает тот же маркер
+function continueList() {
+  const line = currentLine();
+  if (!line || line.textContent.trim() || !line.previousElementSibling) return;
+  const prev = line.previousElementSibling;
+  if (!prev.classList.contains('note-check') || prev.textContent.length <= 6) return;
+  const fresh = lineNode('- [ ] ');
+  line.replaceWith(fresh);
+  const sel = document.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(fresh);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+// Панель форматирования над клавиатурой и лист «Ссылка».
+(() => {
+  const bar = document.getElementById('fmt-bar');
+  const body = document.getElementById('n-body');
+  const title = document.getElementById('n-title');
+  const root = document.getElementById('app-root');
+  const sheet = document.getElementById('link-sheet');
+  const viewport = window.visualViewport;
+  let savedRange = null;
+
+  function place() {
+    if (bar.hidden || !viewport) return;
+    bar.style.top = (viewport.height - bar.offsetHeight - 8) + 'px';
+    // без хода прокрутки Safari не уводит экран вверх и шапка заметки остаётся на месте
+    root.style.height = viewport.height + 'px';
+    root.style.overflow = 'hidden';
+  }
+
+  function show() {
+    bar.hidden = false;
+    document.body.classList.add('typing');
+    place();
+    reflectFmt();
+  }
+
+  function hide() {
+    bar.hidden = true;
+    document.body.classList.remove('typing');
+    root.style.height = '';
+    root.style.overflow = '';
+  }
+
+  for (const el of [body, title]) {
+    el.addEventListener('focus', show);
+    el.addEventListener('blur', () => setTimeout(() => {
+      if (document.activeElement !== body && document.activeElement !== title) hide();
+    }, 80));
+  }
+  if (viewport) viewport.addEventListener('resize', place);
+  document.addEventListener('selectionchange', () => { if (!bar.hidden) reflectFmt(); });
+
+  // гасим pointerdown, иначе поле теряет фокус и клавиатура закрывается
+  bar.addEventListener('pointerdown', (e) => e.preventDefault());
+
+  bar.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-fmt]');
+    if (!btn) return;
+    const kind = btn.dataset.fmt;
+    if (kind === 'done') { body.blur(); title.blur(); return; }
+    if (kind === 'link') { openLink(); return; }
+    toggleMark(kind);
+  });
+
+  // тап по кружку отмечает пункт
+  body.addEventListener('click', (e) => {
+    const mark = e.target.closest('.md');
+    if (!mark) return;
+    const line = mark.parentElement;
+    if (!line.classList.contains('note-check')) return;
+    const text = line.textContent;
+    line.replaceWith(lineNode(text.startsWith('- [x] ')
+      ? text.replace('- [x] ', '- [ ] ')
+      : text.replace('- [ ] ', '- [x] ')));
+    noteEditor.schedule();
+  });
+
+  function openLink() {
+    const sel = document.getSelection();
+    savedRange = sel && sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
+    document.getElementById('link-name').value = savedRange ? savedRange.toString() : '';
+    document.getElementById('link-url').value = '';
+    sheet.hidden = false;
+    setTimeout(() => document.getElementById('link-url').focus(), 80);
+  }
+
+  document.getElementById('link-cancel').addEventListener('click', () => { sheet.hidden = true; });
+
+  document.getElementById('link-apply').addEventListener('click', () => {
+    const url = document.getElementById('link-url').value.trim();
+    const name = document.getElementById('link-name').value.trim() || url;
+    sheet.hidden = true;
+    if (!url || !savedRange) return;
+    const sel = document.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(savedRange);
+    savedRange.deleteContents();
+    savedRange.insertNode(document.createTextNode(`[${name}](${url})`));
+    sel.collapseToEnd();
+    markHeads();
+    noteEditor.schedule();
+  });
+})();
 
 // оглавление: список заголовков, тап переносит к нужному разделу
 document.getElementById('n-outline').addEventListener('click', (e) => {
