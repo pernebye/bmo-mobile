@@ -1579,7 +1579,7 @@ body.searching .screen[data-screen="notes"] .screen-sub {
 /* начинается там же, где заголовок экрана: он к этому моменту уже погас */
 #search-start {
   position: absolute;
-  top: 2px; left: 0; right: 0;
+  top: 2px; left: 14px; right: 14px;   /* абсолютный отсчёт идёт от края экрана, боковые отступы задаём сами */
   opacity: 0;
   pointer-events: none;
   transition: opacity 380ms ease-out;
