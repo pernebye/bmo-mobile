@@ -156,7 +156,8 @@ input:focus, select:focus { border-color: var(--accent); }
 }
 
 .chip span { font-size: 11px; opacity: 0.7; }
-.chip.active { background: var(--elevated); color: var(--text); }
+.chip.active { background: var(--accent); color: var(--on-accent); }
+.chip.active span { opacity: 0.75; }
 
 /* Списки */
 .list { display: flex; flex-direction: column; gap: 8px; }

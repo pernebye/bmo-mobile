@@ -1492,10 +1492,15 @@ document.getElementById('notes-compose').addEventListener('click', () => {
 
   // Клавиатура не укорачивает layout-вьюпорт, поэтому iOS прокручивает к полю всю
   // страницу и список уезжает за экран. Поднимаем полосу сами, а список держим на месте.
+  //
+  // Высоту клавиатуры не вычисляем: над ней iOS рисует свою панель со стрелками, и
+  // формула на неё промахивается. Сбрасываем сдвиг, меряем, где полоса оказалась на
+  // самом деле, и двигаем ровно на разницу с нижним краем видимой области.
   function liftBar() {
     if (!viewport || !document.body.classList.contains('searching')) return;
-    const keyboard = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
-    bar.style.transform = keyboard ? `translateY(${-keyboard}px)` : '';
+    bar.style.transform = '';
+    const lift = bar.getBoundingClientRect().bottom - (viewport.offsetTop + viewport.height - 8);
+    if (lift > 0) bar.style.transform = `translateY(${-lift}px)`;
   }
 
   input.addEventListener('input', () => {
