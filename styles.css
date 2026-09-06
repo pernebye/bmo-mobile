@@ -1648,9 +1648,10 @@ body.searching .notes-cancel { display: flex; }
 body.searching .tabbar { opacity: 0; pointer-events: none; }
 
 /* пока набирают в поиске, страница не прокручивается: иначе Safari уводит её к полю */
-/* Safari прокручивает страницу к полю служебно, в обход overflow. Не мешаем ему,
-   а возвращаем содержимое на место встречным сдвигом — см. app.js. */
-.app-root { will-change: auto; }
+/* body тянется на 100vh, а 100vh — это всегда полный экран, даже когда клавиатура
+   ужала видимую область. Отсюда берётся запас прокрутки, который Safari выбирает,
+   чтобы показать поле. На время набора убираем эту растяжку. */
+body.typing { min-height: 0; }
 
 body.searching .notes-bar { bottom: calc(8px + var(--safe-bottom)); }
 
