@@ -15,7 +15,8 @@ const ORIGIN_FRESH = 'https://api.github.com/repos/pernebye/bmo-mobile/contents/
 let apiBase = location.origin.includes('github.io') ? (localStorage.getItem(KEY_API) || '') : '';
 
 const state = {
-  projects: [], workspaces: [], tasks: [], events: [], sessions: [], notes: [], activity: {},
+  projects: [], workspaces: [], tasks: [], events: [], sessions: [], notes: [], notesTrash: [],
+  showTrash: false, activity: {},
   screen: 'projects', scope: 'all', workspace: '', search: '',
   calCursor: new Date(), calSelected: '',
   sheet: { kind: 'task', item: null, steps: [] },
@@ -383,6 +384,7 @@ function applyState(data) {
     events: data.events || [],
     sessions: data.sessions || [],
     notes: data.notes || [],
+    notesTrash: data.notesTrash || [],
     activity: data.activity || {},
     faviconsVersion: data.faviconsVersion || ''
   });
@@ -1159,10 +1161,28 @@ function noteCard(n) {
   </button>`;
 }
 
+function trashCard(n) {
+  const title = esc((n.title || '').trim() || 'Без заголовка');
+  const left = 30 - Math.floor((Date.now() - new Date(n.deletedAt).getTime()) / 86400000);
+  return `<div class="note-card trashed">
+    <div class="note-card-head"><span class="note-card-title">${title}</span><span class="note-card-when">${left <= 1 ? 'удалится сегодня' : `ещё ${left} дн.`}</span></div>
+    <div class="trash-actions">
+      <button data-restore="${esc(n.id)}">Восстановить</button>
+      <button class="danger" data-purge="${esc(n.id)}">Удалить</button>
+    </div>
+  </div>`;
+}
+
 function renderNotes() {
   const list = document.getElementById('notes-list');
   const notes = state.notes || [];
-  list.innerHTML = notes.length ? notes.map(noteCard).join('') : '<div class="empty">Заметок пока нет</div>';
+  const trash = state.notesTrash || [];
+  let html = notes.length ? notes.map(noteCard).join('') : '<div class="empty">Заметок пока нет</div>';
+  if (trash.length) {
+    html += `<button class="notes-trash-toggle">${state.showTrash ? 'Скрыть корзину' : `Корзина · ${trash.length}`}</button>`;
+    if (state.showTrash) html += trash.map(trashCard).join('');
+  }
+  list.innerHTML = html;
 }
 
 function sortNotes() {
@@ -1171,8 +1191,9 @@ function sortNotes() {
 }
 
 const noteEditor = {
-  id: null, pinned: false, saveTimer: null,
+  id: null, pinned: false, saveTimer: null, active: false, creating: null,
   open(note) {
+    this.active = true;
     this.id = note ? note.id : null;
     this.pinned = note ? !!note.pinned : false;
     document.getElementById('n-title').value = note ? (note.title || '') : '';
@@ -1184,16 +1205,26 @@ const noteEditor = {
     // фокус после переезда, иначе клавиатура дёргает анимацию
     if (!note) setTimeout(() => document.getElementById('n-title').focus(), 480);
   },
-  async _ensure() {
-    if (this.id || state.offline) return this.id;
-    try {
-      const res = await api('/api/note-create', 'POST', { title: '', body: '' });
-      if (res && res.ok) { this.id = res.note.id; state.notes.unshift(res.note); }
-    } catch {}
-    return this.id;
+  // создаём заметку под черновик ровно один раз: два сохранения подряд ловили
+  // this.id === null и заводили две копии
+  _ensure() {
+    if (this.id) return Promise.resolve(this.id);
+    if (state.offline) return Promise.resolve(null);
+    if (!this.creating) {
+      this.creating = api('/api/note-create', 'POST', { title: '', body: '' })
+        .then(res => {
+          if (res && res.ok) { this.id = res.note.id; state.notes.unshift(res.note); }
+          return this.id;
+        })
+        .catch(() => this.id)
+        .finally(() => { this.creating = null; });
+    }
+    return this.creating;
   },
   async save() {
-    if (state.offline) return;
+    // редактор закрыт, а поля ещё хранят текст: iOS досылает input при уходе
+    // клавиатуры, и такое сохранение заводило копию заметки
+    if (!this.active || state.offline) return;
     const title = document.getElementById('n-title').value;
     const body = document.getElementById('n-body').value;
     if (!this.id && !title.trim() && !body.trim()) return;   // пустую новую не создаём
@@ -1227,31 +1258,60 @@ const noteEditor = {
   async remove() {
     if (blocked()) return;
     if (!this.id) { this._hide(); return; }
-    if (!confirm('Удалить заметку?')) return;
     clearTimeout(this.saveTimer);
+    const gone = state.notes.find(n => n.id === this.id);
     try { await api('/api/note-delete', 'POST', { id: this.id }); } catch {}
     state.notes = state.notes.filter(n => n.id !== this.id);
-    this.id = null;
+    if (gone) state.notesTrash.unshift({ ...gone, pinned: false, deletedAt: new Date().toISOString() });
     this._hide();
     renderNotes();
+    toast('Заметка в корзине');
   },
   async close() {
     clearTimeout(this.saveTimer);
     await this.save();
-    this.id = null;
     this._hide();
     sortNotes();
     renderNotes();
   },
   _hide() {
+    this.active = false;
+    this.id = null;
+    // поля чистим здесь же, иначе запоздалый input сохранит текст уже в новую заметку
+    document.getElementById('n-title').value = '';
+    document.getElementById('n-body').value = '';
     document.getElementById('note-page').classList.remove('open');
     document.getElementById('app-root').classList.remove('pushed');
   }
 };
 
-document.getElementById('notes-list').addEventListener('click', (e) => {
+document.getElementById('notes-list').addEventListener('click', async (e) => {
+  if (e.target.closest('.notes-trash-toggle')) {
+    state.showTrash = !state.showTrash;
+    return renderNotes();
+  }
+  const back = e.target.closest('[data-restore]');
+  if (back) {
+    if (blocked()) return;
+    const id = back.dataset.restore;
+    try { await api('/api/note-restore', 'POST', { id }); } catch {}
+    const note = state.notesTrash.find(n => n.id === id);
+    state.notesTrash = state.notesTrash.filter(n => n.id !== id);
+    if (note) { delete note.deletedAt; state.notes.unshift(note); sortNotes(); }
+    renderNotes();
+    return toast('Заметка восстановлена');
+  }
+  const kill = e.target.closest('[data-purge]');
+  if (kill) {
+    if (blocked()) return;
+    if (!confirm('Удалить навсегда? Восстановить будет нельзя.')) return;
+    const id = kill.dataset.purge;
+    try { await api('/api/note-purge', 'POST', { id }); } catch {}
+    state.notesTrash = state.notesTrash.filter(n => n.id !== id);
+    return renderNotes();
+  }
   const card = e.target.closest('.note-card');
-  if (!card) return;
+  if (!card || card.classList.contains('trashed')) return;
   const note = (state.notes || []).find(n => n.id === card.dataset.note);
   if (note) noteEditor.open(note);
 });

@@ -1268,3 +1268,30 @@ body.sheet-open .fab { display: none; }
    экрана — в зоне «домашней полосы» проглядывает фон страницы. Пока шторка открыта,
    красим его в её цвет, иначе снизу видна серая полоса. */
 body.sheet-open { background: var(--surface); }
+
+/* Корзина заметок */
+.notes-trash-toggle {
+  width: 100%;
+  margin-top: 6px;
+  padding: 11px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--dim);
+  font-family: inherit;
+  font-size: 13px;
+}
+.note-card.trashed { opacity: 0.62; }
+.note-card.trashed .note-card-title { font-weight: 500; }
+.trash-actions { display: flex; gap: 8px; margin: -2px 0 10px; }
+.trash-actions button {
+  flex: 1;
+  padding: 9px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+}
+.trash-actions button.danger { color: var(--red); }
