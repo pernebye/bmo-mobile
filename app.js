@@ -1575,7 +1575,7 @@ function enableSwipe(list) {
     }
     if (drag.axis !== 'x') return;
     e.preventDefault();                       // иначе жест уходит в прокрутку страницы
-    drag.shift = Math.max(-drag.width - 30, Math.min(0, drag.base + dx));
+    drag.shift = Math.max(-drag.width, Math.min(0, drag.base + dx));   // дальше кнопок не тянем
     drag.card.style.transform = `translateX(${drag.shift}px)`;
   }, { passive: false });
 
