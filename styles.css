@@ -406,8 +406,9 @@ input:focus, select:focus { border-color: var(--accent); }
   border-radius: 18px 18px 0 0;
   border-top: 1px solid var(--border);
   animation: rise 220ms ease-out;
-  /* контент держим над «домашней полосой» айфона */
-  padding-bottom: calc(var(--safe-bottom) + 8px);
+  /* без safe-area: iOS и так обрезает фиксированный слой выше «домашней полосы»,
+     второй такой же отступ просто съедал высоту шторки */
+  padding-bottom: 8px;
 }
 
 /* В standalone-PWA fixed-элемент упирается в линию safe-area, а не в физический низ экрана,
