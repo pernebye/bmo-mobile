@@ -1559,14 +1559,22 @@ body.sheet-open { background: var(--surface); }
    единственный заголовок — «Разделы», иначе кажется, что экран дёргается. */
 .screen[data-screen="notes"] .screen-title,
 .screen[data-screen="notes"] .screen-sub {
+  overflow: hidden;
   transition: opacity 620ms ease-out, transform 620ms ease-out;
 }
 
+/* Место под заголовком схлопываем, иначе результаты поиска начинались бы низко.
+   Высоту убираем с задержкой в 620 мс — ровно когда заголовок уже погас, чтобы
+   схлопывание не было видно. */
 body.searching .screen[data-screen="notes"] .screen-title,
 body.searching .screen[data-screen="notes"] .screen-sub {
   opacity: 0;
   transform: translateY(-14px);
   pointer-events: none;
+  height: 0;
+  margin: 0;
+  transition: opacity 620ms ease-out, transform 620ms ease-out,
+              height 0ms linear 620ms, margin 0ms linear 620ms;
 }
 
 /* список гаснет раньше, чем клавиатура успеет сжать вьюпорт */
