@@ -1546,6 +1546,12 @@ function closeSwipe() {
   openSwipe = null;
 }
 
+// Резиновое натяжение (rubber banding): за пределом ход не запрещается, а вязнет.
+// Формула Apple: смещение стремится к dimension, но никогда его не достигает.
+function rubber(over, dimension) {
+  return (1 - 1 / (over * 0.55 / dimension + 1)) * dimension;
+}
+
 function enableSwipe(list) {
   let drag = null;
 
@@ -1560,6 +1566,7 @@ function enableSwipe(list) {
       y0: e.touches[0].clientY,
       base: openSwipe === row ? -row.querySelector('.swipe-actions').offsetWidth : 0,
       width: row.querySelector('.swipe-actions').offsetWidth,
+      span: row.offsetWidth,
       axis: null,
     };
   }, { passive: true });
@@ -1575,7 +1582,10 @@ function enableSwipe(list) {
     }
     if (drag.axis !== 'x') return;
     e.preventDefault();                       // иначе жест уходит в прокрутку страницы
-    drag.shift = Math.max(-drag.width, Math.min(0, drag.base + dx));   // дальше кнопок не тянем
+    const raw = drag.base + dx;
+    if (raw > 0) drag.shift = rubber(raw, drag.span);                      // вправо действий нет
+    else if (raw >= -drag.width) drag.shift = raw;
+    else drag.shift = -drag.width - rubber(-raw - drag.width, drag.span);  // дальше кнопок — вязко
     drag.card.style.transform = `translateX(${drag.shift}px)`;
   }, { passive: false });
 

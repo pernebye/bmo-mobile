@@ -1141,7 +1141,7 @@ body.sheet-open .fab { display: none; }
 .swipe .swipe-body {
   position: relative;
   background: var(--surface);
-  transition: transform 220ms ease-out;
+  transition: transform 200ms ease-out;
 }
 
 .swipe.dragging .swipe-body { transition: none; }
