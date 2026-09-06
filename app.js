@@ -1155,10 +1155,16 @@ document.getElementById('btn-add').addEventListener('click', () => {
 function noteCard(n) {
   const title = esc((n.title || '').trim() || 'Без заголовка');
   const snippet = esc((n.body || '').replace(/\s+/g, ' ').trim().slice(0, 80));
-  return `<button class="note-card" data-note="${esc(n.id)}">
-    <div class="note-card-title">${title}</div>
-    <div class="note-card-sub"><span class="note-card-when">${noteWhen(n.updatedAt)}</span>${snippet ? '&nbsp;&nbsp;' + snippet : ''}</div>
-  </button>`;
+  return `<div class="swipe">
+    <div class="swipe-actions">
+      <button class="swipe-act" data-swipe="pin" data-id="${esc(n.id)}">${n.pinned ? 'Открепить' : 'Закрепить'}</button>
+      <button class="swipe-act danger" data-swipe="delete" data-id="${esc(n.id)}">Удалить</button>
+    </div>
+    <button class="note-card" data-note="${esc(n.id)}">
+      <div class="note-card-title">${title}</div>
+      <div class="note-card-sub"><span class="note-card-when">${noteWhen(n.updatedAt)}</span>${snippet ? '&nbsp;&nbsp;' + snippet : ''}</div>
+    </button>
+  </div>`;
 }
 
 // дата в строке списка: время для сегодняшних, день недели для недавних, дальше — число
@@ -1373,7 +1379,38 @@ const noteEditor = {
   }
 };
 
+async function pinNote(id) {
+  const note = state.notes.find(n => n.id === id);
+  if (!note) return;
+  const pinned = !note.pinned;
+  try { await api('/api/note-update', 'POST', { id, pinned }); } catch {}
+  note.pinned = pinned;
+  sortNotes();
+  renderNotes();
+  toast(pinned ? 'Закреплено' : 'Откреплено');
+}
+
+async function trashNote(id) {
+  const note = state.notes.find(n => n.id === id);
+  if (!note) return;
+  try { await api('/api/note-delete', 'POST', { id }); } catch {}
+  state.notes = state.notes.filter(n => n.id !== id);
+  state.notesTrash.unshift({ ...note, pinned: false, deletedAt: new Date().toISOString() });
+  renderNotes();
+  toast('Заметка в корзине');
+}
+
 document.getElementById('notes-list').addEventListener('click', async (e) => {
+  const act = e.target.closest('[data-swipe]');
+  if (act) {
+    if (blocked()) return;
+    closeSwipe();
+    return act.dataset.swipe === 'pin' ? pinNote(act.dataset.id) : trashNote(act.dataset.id);
+  }
+  // открытую строку первый тап только закрывает
+  if (openSwipe && e.target.closest('.swipe') === openSwipe) { closeSwipe(); return; }
+  closeSwipe();
+
   if (e.target.closest('.notes-trash-toggle')) {
     state.showTrash = !state.showTrash;
     return renderNotes();
@@ -1458,6 +1495,64 @@ document.getElementById('notes-compose').addEventListener('click', () => {
 window.addEventListener('scroll', () => {
   document.querySelector('.topbar').classList.toggle('scrolled', window.scrollY > 34);
 }, { passive: true });
+
+// Свайп по строке заметки влево открывает кнопки, как в системных списках iOS.
+let openSwipe = null;
+
+function closeSwipe() {
+  if (!openSwipe) return;
+  openSwipe.querySelector('.note-card').style.transform = '';
+  openSwipe = null;
+}
+
+(() => {
+  const list = document.getElementById('notes-list');
+  let drag = null;
+
+  list.addEventListener('touchstart', (e) => {
+    const row = e.target.closest('.swipe');
+    if (!row) return;
+    if (openSwipe && openSwipe !== row) closeSwipe();
+    const card = row.querySelector('.note-card');
+    drag = {
+      row, card,
+      x0: e.touches[0].clientX,
+      y0: e.touches[0].clientY,
+      base: openSwipe === row ? -row.querySelector('.swipe-actions').offsetWidth : 0,
+      width: row.querySelector('.swipe-actions').offsetWidth,
+      axis: null,
+    };
+  }, { passive: true });
+
+  list.addEventListener('touchmove', (e) => {
+    if (!drag) return;
+    const dx = e.touches[0].clientX - drag.x0;
+    const dy = e.touches[0].clientY - drag.y0;
+    if (!drag.axis) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      drag.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      if (drag.axis === 'x') drag.row.classList.add('dragging');
+    }
+    if (drag.axis !== 'x') return;
+    e.preventDefault();                       // иначе жест уходит в прокрутку страницы
+    drag.shift = Math.max(-drag.width - 30, Math.min(0, drag.base + dx));
+    drag.card.style.transform = `translateX(${drag.shift}px)`;
+  }, { passive: false });
+
+  list.addEventListener('touchend', () => {
+    if (!drag) return;
+    const { row, card, width } = drag;
+    row.classList.remove('dragging');
+    if (drag.axis === 'x') {
+      const open = -(drag.shift || 0) > width / 2;
+      card.style.transform = open ? `translateX(${-width}px)` : '';
+      openSwipe = open ? row : null;
+    }
+    drag = null;
+  });
+
+  window.addEventListener('scroll', () => closeSwipe(), { passive: true });
+})();
 
 document.getElementById('n-back').addEventListener('click', () => noteEditor.close());
 document.getElementById('n-pin').addEventListener('click', () => noteEditor.togglePin());

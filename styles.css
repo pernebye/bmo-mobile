@@ -1117,6 +1117,34 @@ body.sheet-open .fab { display: none; }
   background: transparent; border: none; border-radius: 0;
   padding: 12px 15px;
 }
+
+/* Действия по свайпу: строка едет влево, из-под неё показываются кнопки */
+.swipe { position: relative; overflow: hidden; }
+
+.swipe-actions {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  display: flex;
+}
+
+.swipe-act {
+  width: 86px;
+  border: none;
+  background: var(--elevated);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.swipe-act.danger { background: var(--red); color: #fff; }
+
+.swipe .note-card {
+  position: relative;
+  background: var(--surface);
+  transition: transform 220ms ease-out;
+}
+
+.swipe.dragging .note-card { transition: none; }
 .note-card:active { background: var(--hover); }
 .note-card-title { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .note-card-sub { margin-top: 3px; font-size: 13px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
