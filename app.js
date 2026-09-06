@@ -1366,6 +1366,8 @@ function renderSearchStart() {
     + '</div>';
 }
 
+let startReveal = null;
+
 // какой из двух списков показывать: пустой поиск — разделы, иначе результаты
 function reflectSearch() {
   const searching = document.body.classList.contains('searching');
@@ -1373,9 +1375,15 @@ function reflectSearch() {
   const start = document.getElementById('search-start');
   const list = document.getElementById('notes-list');
   const showStart = searching && empty;
-  if (showStart) renderSearchStart();
-  start.hidden = !showStart;
   list.classList.toggle('faded', showStart);
+  clearTimeout(startReveal);
+  if (showStart) {
+    renderSearchStart();
+    // ждём, пока клавиатура доедет и вьюпорт перестанет скакать
+    startReveal = setTimeout(() => start.classList.add('on'), 320);
+  } else {
+    start.classList.remove('on');
+  }
 }
 
 function renderNotes() {

@@ -1557,14 +1557,20 @@ body.sheet-open { background: var(--surface); }
    проявлением: пока список не виден, скачок вьюпорта под клавиатуру глазу не заметен. */
 .notes-stack { position: relative; }
 
-.notes-stack > .list { transition: opacity 200ms ease-out; }
+/* список гаснет быстро — раньше, чем клавиатура успеет сжать вьюпорт */
+#notes-list { transition: opacity 140ms ease-out; }
+#notes-list.faded { opacity: 0; pointer-events: none; }
 
+/* разделы проявляются уже после скачка, поэтому его не видно */
 #search-start {
   position: absolute;
   top: 0; left: 0; right: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease-out;
 }
 
-.list.faded { opacity: 0; pointer-events: none; }
+#search-start.on { opacity: 1; pointer-events: auto; }
 
 .notes-trash-toggle {
   width: 100%;
