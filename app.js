@@ -1420,6 +1420,28 @@ document.getElementById('login-code').addEventListener('input', (e) => {
   if (/^\d{6}$/.test(e.target.value.trim())) submitCode(e.target.value);
 });
 document.getElementById('login-scan').addEventListener('click', startScanner);
+
+// код входа приходит в Telegram по кнопке: осознанное действие, а не рассылка
+// на каждое открытие приложения
+document.getElementById('login-tg').addEventListener('click', async () => {
+  const btn = document.getElementById('login-tg');
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = 'Отправляю…';
+  try {
+    if (!apiBase) await resolveApi(true);
+    const res = await fetch(apiBase + '/api/send-code', { method: 'POST' });
+    const data = await res.json();
+    btn.textContent = data.ok ? 'Код отправлен в Telegram' : (data.error || 'Не вышло');
+  } catch {
+    btn.textContent = 'Нет связи с компьютером';
+  }
+  setTimeout(() => {
+    btn.innerHTML = original;
+    btn.disabled = false;
+    mountIcons(btn);
+  }, 2600);
+});
 document.getElementById('scanner-cancel').addEventListener('click', stopScanner);
 
 // --- старт ---

@@ -409,9 +409,9 @@ input:focus, select:focus { border-color: var(--accent); }
   border-radius: 18px 18px 0 0;
   border-top: 1px solid var(--border);
   animation: rise 220ms ease-out;
-  /* без safe-area: iOS и так обрезает фиксированный слой выше «домашней полосы»,
-     второй такой же отступ просто съедал высоту шторки */
-  padding-bottom: 8px;
+  /* сам блок тянется до физического низа (фон закрывает системную зону),
+     а отступ под «домашнюю полосу» живёт внутри прокрутки — см. .sheet-body */
+  padding-bottom: 0;
 }
 
 /* В standalone-PWA fixed-элемент упирается в линию safe-area, а не в физический низ экрана,
@@ -1054,7 +1054,9 @@ body.sheet-open .fab { display: none; }
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: 12px 16px 24px;
+  /* нижний отступ с запасом на «домашнюю полосу»: контент прокручивается через неё,
+     но в конце списка останавливается выше — палец не спорит с системным жестом */
+  padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: 10px;

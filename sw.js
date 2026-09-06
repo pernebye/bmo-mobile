@@ -1,8 +1,8 @@
 // Оболочка кэшируется, данные всегда идут по сети — иначе можно увидеть
 // вчерашний список задач и решить, что всё сделано.
-const VERSION = 'v39';
+const VERSION = 'v40';
 const CACHE = 'bmo-shell-' + VERSION;
-const SHELL = ['./', 'index.html', 'styles.css?v=39', 'icons.js?v=39', 'app.js?v=39', 'manifest.webmanifest', 'icon-256.png'];
+const SHELL = ['./', 'index.html', 'styles.css?v=40', 'icons.js?v=40', 'app.js?v=40', 'manifest.webmanifest', 'icon-256.png'];
 
 self.addEventListener('install', (event) => {
   // берём файлы напрямую с сервера, минуя HTTP-кэш браузера — иначе новая

@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=39">
+<link rel="stylesheet" href="styles.css?v=40">
 </head>
 <body>
 
@@ -38,6 +38,7 @@
     <input type="text" id="login-code" inputmode="numeric" autocomplete="one-time-code"
            placeholder="000000" maxlength="64">
     <button class="primary" id="login-submit">Войти</button>
+    <button class="login-scan" id="login-tg"><i data-icon="send"></i> Прислать код в Telegram</button>
 
     <button class="login-scan" id="login-scan" hidden><i data-icon="scan"></i> Отсканировать QR с ключом</button>
     <p class="login-note" id="login-note">Нет доступа к Authenticator? Отсканируй QR с ключом устройства или вставь его в то же поле.</p>
@@ -141,7 +142,7 @@
     </div>
     <div class="sheet-kind" id="sheet-kind" hidden></div>
     <div class="sheet-head-actions">
-      <button class="sheet-icon" id="f-done" hidden title="Выполнено"><i data-icon="check"></i></button>
+      <button class="sheet-icon" id="f-done" hidden title="Выполнено"><i data-icon="check-circle"></i></button>
       <button class="sheet-icon sheet-icon-danger" id="f-delete" hidden title="Удалить"><i data-icon="trash"></i></button>
       <button class="sheet-icon sheet-save" id="f-save" title="Сохранить"><i data-icon="save"></i></button>
     </div>
@@ -216,7 +217,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=39"></script>
-<script src="app.js?v=39"></script>
+<script src="icons.js?v=40"></script>
+<script src="app.js?v=40"></script>
 </body>
 </html>
