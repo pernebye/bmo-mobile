@@ -1402,9 +1402,7 @@ body.sheet-open { background: var(--surface); }
   height: 44px;
   padding: 0 14px;
   border-radius: 22px;
-  background: var(--bar-bg);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 6px 20px var(--shadow);
+  background: var(--elevated);
   color: var(--dim);
 }
 
@@ -1426,9 +1424,7 @@ body.sheet-open { background: var(--surface); }
   display: flex; align-items: center; justify-content: center;
   border: none;
   border-radius: 50%;
-  background: var(--bar-bg);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 6px 20px var(--shadow);
+  background: var(--elevated);
   color: var(--accent);
 }
 
