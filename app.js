@@ -2054,8 +2054,9 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && to
   setInterval(resolveApi, 300000);
 })();
 
-// ВРЕМЕННАЯ лента замеров: пишет, что происходит первую секунду после фокуса.
-// Показывается над полосой поиска, снять после проверки.
+// ВРЕМЕННАЯ лента замеров — снять после починки.
+// Главное здесь: docH (высота документа) и max (запас прокрутки = docH - iH).
+// Если max больше нуля, Safari есть куда прокручивать, и он это сделает.
 function trace(reason) {
   const vv = window.visualViewport;
   const box = document.getElementById('trace') || (() => {
@@ -2066,21 +2067,21 @@ function trace(reason) {
     document.body.appendChild(el);
     return el;
   })();
-  const rows = [`${reason}  t  sY  iH  vH  docH  hdr`];
+  const root = document.getElementById('app-root');
+  const bar = document.getElementById('notes-bar');
+  const kb = Number(localStorage.getItem('bmo-kb') || 0);
+  const rows = [`${reason} kb=${kb}`, '    t   sY   iH   vH  docH rootH  max barT  hdr'];
   const started = Date.now();
-  const head = () => {
-    const el = document.querySelector('#notes-list .group-title');
-    return el ? Math.round(el.getBoundingClientRect().top) : 0;
-  };
+  const num = (v, w) => String(Math.round(v)).padStart(w);
   const sample = () => {
-    rows.push(`${String(Date.now() - started).padStart(6)} `
-      + `${String(Math.round(scrollY)).padStart(4)} ${String(innerHeight).padStart(4)} `
-      + `${String(Math.round(vv.height)).padStart(4)} `
-      + `${String(document.documentElement.scrollHeight).padStart(5)} `
-      + `${String(head()).padStart(5)}`);
+    const head = document.querySelector('#notes-list .group-title');
+    const docH = document.documentElement.scrollHeight;
+    rows.push(num(Date.now() - started, 5) + num(scrollY, 5) + num(innerHeight, 5)
+      + num(vv.height, 5) + num(docH, 6) + num(root.offsetHeight, 6)
+      + num(docH - innerHeight, 5) + num(parseFloat(bar.style.top || 0), 5)
+      + num(head ? head.getBoundingClientRect().top : 0, 5));
     box.textContent = rows.join('\n');
-    const bar = document.getElementById('notes-bar');
     box.style.top = (parseFloat(bar.style.top || 0) - 8 - rows.length * 13) + 'px';
   };
-  for (const ms of [0, 60, 120, 200, 300, 450, 700, 1000, 1400]) setTimeout(sample, ms);
+  for (const ms of [0, 40, 80, 120, 180, 260, 400, 700, 1200]) setTimeout(sample, ms);
 }
