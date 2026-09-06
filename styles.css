@@ -949,7 +949,7 @@ textarea:focus { border-color: var(--accent); }
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: var(--float);
+  background: var(--elevated);
   color: var(--muted);
   box-shadow: 0 4px 14px var(--shadow);
   transform: translateY(-52px);
@@ -1426,7 +1426,7 @@ body.sheet-open { background: var(--surface); }
   display: flex; align-items: center; justify-content: center;
   border: none;
   border-radius: 50%;
-  background: var(--elevated);
+  background: var(--float);
   color: var(--accent);
 }
 
