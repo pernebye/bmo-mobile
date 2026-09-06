@@ -738,15 +738,16 @@ function autosize(el) {
 
 let lockedScrollY = 0;
 function lockScroll(on) {
+  const root = document.getElementById('app-root');
   if (on) {
     if (document.body.classList.contains('sheet-open')) return;
     lockedScrollY = window.scrollY;
-    document.body.style.top = `-${lockedScrollY}px`;
+    root.style.top = `-${lockedScrollY}px`;
     document.body.classList.add('sheet-open');
   } else {
     if (!document.body.classList.contains('sheet-open')) return;
     document.body.classList.remove('sheet-open');
-    document.body.style.top = '';
+    root.style.top = '';
     window.scrollTo(0, lockedScrollY);
   }
 }
@@ -1485,26 +1486,4 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && to
   setInterval(() => { if (!document.hidden) load(true); }, 60000);
   // адрес туннеля меняется вместе с перезагрузкой компьютера
   setInterval(resolveApi, 300000);
-})();
-
-// ВРЕМЕННАЯ диагностика шторки — удалить после кадра
-(() => {
-  const box = document.createElement('div');
-  box.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:rgba(0,0,0,.85);color:#35ff6d;font:11px/1.35 ui-monospace,Menlo,monospace;padding:5px 7px;white-space:pre;pointer-events:none';
-  document.body.appendChild(box);
-  setInterval(() => {
-    const sh = document.getElementById('sheet');
-    if (!sh || sh.hidden) { box.textContent = 'открой задачу'; return; }
-    const sb = sh.querySelector('.sheet-body');
-    const hd = sh.querySelector('.sheet-head');
-    const r = sh.getBoundingClientRect(), b = sb.getBoundingClientRect(), h = hd.getBoundingClientRect();
-    const cs = getComputedStyle(sb), cr = getComputedStyle(sh);
-    box.textContent =
-      `innerH ${innerHeight} clientH ${document.documentElement.clientHeight}\n` +
-      `sheet  top ${Math.round(r.top)} bot ${Math.round(r.bottom)} padB ${cr.paddingBottom}\n` +
-      `head   bot ${Math.round(h.bottom)}\n` +
-      `body   top ${Math.round(b.top)} bot ${Math.round(b.bottom)} padB ${cs.paddingBottom}\n` +
-      `body   clientH ${sb.clientHeight} scrollH ${sb.scrollHeight} top ${Math.round(sb.scrollTop)}\n` +
-      `children ${sh.children.length}: ${[...sh.children].map(c => c.className || c.tagName).join(',')}`;
-  }, 400);
 })();

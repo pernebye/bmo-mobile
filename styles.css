@@ -994,11 +994,13 @@ body.offline .task .check { border-style: dashed; }
 .task-steps.complete i::after { background: var(--green); }
 
 /* Шторка: шапка с действиями, тело прокручивается само */
-body.sheet-open {
+/* Фон под шторкой запираем не на body: position:fixed на нём схлопывает вьюпорт iOS
+   на высоту статус-бара (852 -> 793) и обрезает всё, что ниже, — снизу оставалась
+   полоса голого фона. Запираем сам .app-root, body остаётся обычным. */
+body.sheet-open .app-root {
   position: fixed;
   left: 0; right: 0;
   overflow: hidden;
-  width: 100%;
 }
 
 /* Пока открыта шторка, нижняя навигация и «плюс» не нужны. Прячем их: у таб-бара
@@ -1266,10 +1268,3 @@ body.sheet-open .fab { display: none; }
    экрана — в зоне «домашней полосы» проглядывает фон страницы. Пока шторка открыта,
    красим его в её цвет, иначе снизу видна серая полоса. */
 body.sheet-open { background: var(--surface); }
-
-/* ВРЕМЕННАЯ диагностика шторки — удалить после кадра */
-.sheet { background: #b3e5fc !important; }
-.sheet-body { background: #fff59d !important; }
-.sheet::after { background: #ff1744 !important; }
-body.sheet-open { background: #00c853 !important; }
-.sheet-head { background: #ce93d8 !important; }
