@@ -397,7 +397,9 @@ input:focus, select:focus { border-color: var(--accent); }
 
 .sheet {
   position: fixed;
-  left: 0; right: 0; bottom: 0;
+  left: 0; right: 0;
+  /* уходим ниже линии safe-area, чтобы фон шторки закрыл «домашнюю полосу», а не серел под ней */
+  bottom: calc(-1 * var(--safe-bottom));
   z-index: 31;
   max-height: 88vh;
   display: flex;
@@ -406,8 +408,8 @@ input:focus, select:focus { border-color: var(--accent); }
   border-radius: 18px 18px 0 0;
   border-top: 1px solid var(--border);
   animation: rise 220ms ease-out;
-  /* контент не должен налезать на «домашнюю полосу» */
-  padding-bottom: var(--safe-bottom);
+  /* но контент держим над полосой */
+  padding-bottom: calc(var(--safe-bottom) + 6px);
 }
 
 /* В standalone-PWA fixed-элемент упирается в линию safe-area, а не в физический низ экрана,
@@ -1090,13 +1092,19 @@ body.sheet-open .fab { display: none; }
 .note-card-when { flex-shrink: 0; font-size: 12px; color: var(--dim); }
 .note-card-snippet { font-size: 13px; color: var(--muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* заметка — отдельный экран, iOS push (предыдущий уезжает влево с затемнением) */
-.app-root { transition: transform 360ms cubic-bezier(0.32, 0.72, 0, 1); }
-.app-root.pushed { transform: translateX(-22%); }
+/* заметка — отдельный экран, iOS push (предыдущий уезжает влево с затемнением).
+   Двигаем каждый элемент экрана по отдельности, а НЕ общий контейнер: если наложить
+   transform на контейнер, его fixed-дети (топбар, нижняя панель) начинают считать низ
+   от контейнера, а не от экрана, и панель прыгает вверх при открытии. */
+.app-root > * { transition: transform 500ms cubic-bezier(0.32, 0.72, 0, 1); }
+.app-root.pushed > * { transform: translateX(-22%); }
+.app-root.dragging > * { transition: none; }
+.app-root > .fab { transition: transform 500ms cubic-bezier(0.32, 0.72, 0, 1), opacity 180ms ease; }
+.app-root.pushed > .fab { opacity: 0; }
 .app-root::after {
-  content: ''; position: fixed; inset: 0; z-index: 60;
+  content: ''; position: fixed; inset: 0; z-index: 34;
   background: #000; opacity: 0; pointer-events: none;
-  transition: opacity 360ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: opacity 500ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 .app-root.pushed::after { opacity: 0.18; }
 
@@ -1105,10 +1113,11 @@ body.sheet-open .fab { display: none; }
   display: flex; flex-direction: column;
   background: var(--bg);
   transform: translateX(calc(100% + 44px));
-  transition: transform 360ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 500ms cubic-bezier(0.32, 0.72, 0, 1);
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
 }
 .note-page.open { transform: translateX(0); }
+.note-page.dragging { transition: none; }
 
 .note-nav {
   display: flex; align-items: center; gap: 8px;

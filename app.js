@@ -1182,7 +1182,7 @@ const noteEditor = {
     document.getElementById('note-page').classList.add('open');
     document.getElementById('app-root').classList.add('pushed');
     // фокус после переезда, иначе клавиатура дёргает анимацию
-    if (!note) setTimeout(() => document.getElementById('n-title').focus(), 300);
+    if (!note) setTimeout(() => document.getElementById('n-title').focus(), 480);
   },
   async _ensure() {
     if (this.id || state.offline) return this.id;
@@ -1269,20 +1269,24 @@ document.getElementById('n-body').addEventListener('input', () => noteEditor.sch
   page.addEventListener('touchstart', (e) => {
     if (!page.classList.contains('open') || e.touches[0].clientX > 28) return;
     sw = { x0: e.touches[0].clientX, dx: 0 };
-    page.style.transition = root.style.transition = 'none';
+    page.classList.add('dragging');
+    root.classList.add('dragging');
   }, { passive: true });
   page.addEventListener('touchmove', (e) => {
     if (!sw) return;
     sw.dx = Math.max(0, e.touches[0].clientX - sw.x0);
-    const frac = sw.dx / window.innerWidth;
+    const shift = -22 + 22 * (sw.dx / window.innerWidth);
     page.style.transform = `translateX(${sw.dx}px)`;
-    root.style.transform = `translateX(${-22 + 22 * frac}%)`;
+    // двигаем элементы экрана по отдельности — как в CSS, чтобы панель не прыгала
+    for (const el of root.children) el.style.transform = `translateX(${shift}%)`;
   }, { passive: true });
   page.addEventListener('touchend', () => {
     if (!sw) return;
     const dx = sw.dx; sw = null;
-    page.style.transition = root.style.transition = '';
-    page.style.transform = root.style.transform = '';   // вернётся к классам с анимацией
+    page.classList.remove('dragging');
+    root.classList.remove('dragging');
+    page.style.transform = '';
+    for (const el of root.children) el.style.transform = '';   // вернётся к классам с анимацией
     if (dx > window.innerWidth * 0.35) noteEditor.close();
   });
 })();
