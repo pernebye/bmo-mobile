@@ -1648,6 +1648,7 @@ body.searching .notes-cancel { display: flex; }
 body.searching .tabbar { opacity: 0; pointer-events: none; }
 
 /* пока набирают в поиске, страница не прокручивается: иначе Safari уводит её к полю */
+html.typing { overflow: hidden; }
 body.typing { overflow: hidden; min-height: 0; }
 
 body.searching .notes-bar { bottom: calc(8px + var(--safe-bottom)); }

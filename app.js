@@ -1644,6 +1644,8 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     // тогда уводить нечего, и список стоит на месте.
     const keepY = window.scrollY;
     document.body.classList.add('typing');
+    // overflow на body уходит вьюпорту, и сам body перестаёт обрезать: гасим на html
+    document.documentElement.classList.add('typing');
     // body тянется на 100vh, а вьюпорт под клавиатурой становится ниже — отсюда и берётся
     // ход прокрутки, который Safari выбирает до упора. Убираем его заранее.
     document.body.style.height = (window.innerHeight - (keyboard || Math.round(window.innerHeight * 0.45))) + 'px';
@@ -1662,6 +1664,7 @@ document.getElementById('notes-compose').addEventListener('click', () => {
   input.addEventListener('blur', () => {
     typing = false;
     document.body.classList.remove('typing');
+    document.documentElement.classList.remove('typing');
     document.body.style.height = '';
     bar.style.position = '';
     bar.style.top = '';
