@@ -1487,11 +1487,38 @@ document.getElementById('notes-compose').addEventListener('click', () => {
 (() => {
   const input = document.getElementById('notes-search');
   const cancel = document.getElementById('notes-cancel');
+  const bar = document.getElementById('notes-bar');
+  const viewport = window.visualViewport;
 
-  // Клавиатура не укорачивает layout-вьюпорт, поэтому iOS прокручивает к полю всю
-  // страницу и список уезжает за экран. Держим прокрутку на месте, пока клавиатура
-  // выезжает; саму полосу не двигаем — фиксированный элемент Safari поднимает сам,
-  // а ручной сдвиг поверх этого только уползал при прокрутке.
+  // Пока открыта клавиатура, iOS перестаёт держать position: fixed — элемент ведёт
+  // себя как обычный и остаётся внизу страницы. Поэтому на время ввода переводим
+  // полосу в координаты документа и сами ставим её на нижний край видимой области.
+  // visualViewport.pageTop как раз и есть отступ видимой области от начала документа.
+  let barHeight = 0;
+  let placing = false;
+
+  function placeBar() {
+    if (!document.body.classList.contains('searching')) {
+      placing = false;
+      bar.style.position = '';
+      bar.style.top = '';
+      bar.style.bottom = '';
+      return;
+    }
+    bar.style.top = (viewport.pageTop + viewport.height - barHeight - 8) + 'px';
+    requestAnimationFrame(placeBar);
+  }
+
+  function startPlacing() {
+    if (!viewport) return;
+    barHeight = bar.offsetHeight;
+    bar.style.position = 'absolute';
+    bar.style.bottom = 'auto';        // с заданным top обе границы растянули бы полосу
+    if (placing) return;
+    placing = true;
+    requestAnimationFrame(placeBar);
+  }
+
   input.addEventListener('input', () => {
     state.noteQuery = input.value;
     renderNotes();
@@ -1500,7 +1527,8 @@ document.getElementById('notes-compose').addEventListener('click', () => {
   input.addEventListener('focus', () => {
     const keepY = window.scrollY;
     document.body.classList.add('searching');
-    // держим прокрутку, только пока клавиатура выезжает — дальше список свободно листается
+    startPlacing();
+    // придерживаем прокрутку, пока клавиатура выезжает: иначе iOS уводит список к полю
     const hold = setInterval(() => window.scrollTo(0, keepY), 16);
     setTimeout(() => clearInterval(hold), 350);
   });
