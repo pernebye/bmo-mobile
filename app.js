@@ -761,8 +761,7 @@ const sheet = {
     const isEvent = kind === 'event';
 
     document.getElementById('sheet-tabs').hidden = !isNew;
-    document.getElementById('sheet-kind').hidden = isNew;
-    document.getElementById('sheet-kind').textContent = isEvent ? 'Событие' : 'Задача';
+    document.getElementById('sheet-kind').hidden = true;   // подпись типа в шапке не нужна
     document.querySelectorAll('.sheet-tab').forEach(t => t.classList.toggle('active', t.dataset.kind === kind));
     document.querySelectorAll('[data-only]').forEach(el => { el.hidden = el.dataset.only !== kind; });
 
@@ -793,7 +792,7 @@ const sheet = {
     doneBtn.hidden = isNew;
     doneBtn.classList.toggle('is-done', !!done);
     doneBtn.title = done ? 'Вернуть в работу' : (isEvent ? 'Отметить прошедшим' : 'Выполнено');
-    document.getElementById('f-save').textContent = isNew ? 'Создать' : 'Сохранить';
+    document.getElementById('f-save').title = isNew ? 'Создать' : 'Сохранить';
     document.getElementById('f-save').hidden = !!external;
 
     this.applyExternal(external);

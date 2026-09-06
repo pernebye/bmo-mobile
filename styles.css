@@ -397,7 +397,10 @@ input:focus, select:focus { border-color: var(--accent); }
 
 .sheet {
   position: fixed;
-  left: 0; right: 0; bottom: 0;
+  left: 0; right: 0;
+  /* тянем шторку ниже линии safe-area: иначе iOS обрезает её выше физического низа
+     и последние ~34px экрана выпадают из области прокрутки */
+  bottom: calc(env(safe-area-inset-bottom, 0px) * -1);
   z-index: 31;
   max-height: 88vh;
   display: flex;
@@ -1037,15 +1040,10 @@ body.sheet-open .fab { display: none; }
 .sheet-icon-danger:active { color: var(--red); }
 
 .sheet-save {
-  padding: 8px 14px;
-  margin-left: 4px;
+  margin-left: 2px;
   border: none;
-  border-radius: 10px;
   background: transparent;
   color: var(--accent);
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 600;
 }
 
 .sheet-save:active { background: var(--accent-soft); }
