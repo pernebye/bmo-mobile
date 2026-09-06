@@ -1627,12 +1627,20 @@ document.getElementById('notes-compose').addEventListener('click', () => {
       try { localStorage.setItem(KB_KEY, keyboard); } catch {}
     }
     bar.style.top = (viewport.pageTop + viewport.height - bar.offsetHeight - 8) + 'px';
+    clampRoot(viewport.height);
   }
 
   // Прокрутку, которую Safari делает сам, гасим встречным сдвигом всего приложения:
   // страница уезжает на scrollY, содержимое возвращается на столько же, глазу — покой.
   // Полоса поиска лежит вне .app-root, поэтому её этот сдвиг не трогает.
   const appRoot = document.getElementById('app-root');
+
+  // Ход прокрутки убираем, ограничивая высоту обычного блока: overflow на html и body
+  // уходит вьюпорту, и они сами обрезать перестают, а .app-root — обрезает.
+  function clampRoot(height) {
+    appRoot.style.height = height + 'px';
+    appRoot.style.overflow = 'hidden';
+  }
 
   function offsetContent() {
     appRoot.style.transform = typing && window.scrollY
@@ -1652,6 +1660,7 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     // прокрутки, и Safari уводит её к полю. Пока идёт ввод, прокрутку запрещаем —
     // тогда уводить нечего, и список стоит на месте.
     document.body.classList.add('typing');
+    clampRoot(window.innerHeight - (keyboard || Math.round(window.innerHeight * 0.45)));
     trace('focus');
     // Сразу закрепляем полосу там, где она и так видна. Раньше здесь удерживалась
     // прокрутка, и это дралось с iOS: список прыгал вниз и уезжал обратно. Теперь
@@ -1667,6 +1676,8 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     typing = false;
     document.body.classList.remove('typing');
     appRoot.style.transform = '';
+    appRoot.style.height = '';
+    appRoot.style.overflow = '';
     bar.style.position = '';
     bar.style.top = '';
     bar.style.bottom = '';
