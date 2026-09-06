@@ -580,13 +580,14 @@ function taskRow(task) {
     </article>
   `;
   if (task.external) return row;          // зеркало чужого трекера — менять нечего
+  const isHigh = task.priority === 'high';
   const mark = isDone
-    ? `<button class="swipe-act" data-swipe="reopen" data-id="${esc(task.id)}">Вернуть</button>`
-    : `<button class="swipe-act" data-swipe="flag" data-id="${esc(task.id)}">${task.priority === 'high' ? 'Обычная' : 'Важная'}</button>`;
+    ? `<button class="swipe-act" data-swipe="reopen" data-id="${esc(task.id)}" title="Вернуть">${ICONS.reload}</button>`
+    : `<button class="swipe-act${isHigh ? ' is-on' : ''}" data-swipe="flag" data-id="${esc(task.id)}" title="${isHigh ? 'Сделать обычной' : 'Сделать важной'}">${ICONS.flag}</button>`;
   return `<div class="swipe">
     <div class="swipe-actions">
       ${mark}
-      <button class="swipe-act danger" data-swipe="drop" data-id="${esc(task.id)}">Удалить</button>
+      <button class="swipe-act danger" data-swipe="drop" data-id="${esc(task.id)}" title="Удалить">${ICONS.trash}</button>
     </div>
     ${row}
   </div>`;
@@ -1181,6 +1182,7 @@ document.querySelectorAll('.tab').forEach(tab => {
       { projects: 'Проекты', tasks: 'Задачи', calendar: 'Календарь', sessions: 'Сессии', notes: 'Заметки' }[state.screen];
     document.getElementById('btn-add').hidden = !(state.screen === 'tasks' || state.screen === 'calendar');
     document.getElementById('notes-bar').hidden = state.screen !== 'notes';
+    if (state.screen !== 'notes') document.body.classList.remove('searching');
     window.scrollTo(0, 0);
   });
 });
@@ -1198,8 +1200,8 @@ function noteCard(n) {
   const snippet = esc((n.body || '').replace(/^#\s+/gm, '').replace(/\s+/g, ' ').trim().slice(0, 80));
   return `<div class="swipe">
     <div class="swipe-actions">
-      <button class="swipe-act" data-swipe="pin" data-id="${esc(n.id)}">${n.pinned ? 'Открепить' : 'Закрепить'}</button>
-      <button class="swipe-act danger" data-swipe="delete" data-id="${esc(n.id)}">Удалить</button>
+      <button class="swipe-act" data-swipe="pin" data-id="${esc(n.id)}" title="${n.pinned ? 'Открепить' : 'Закрепить'}">${n.pinned ? ICONS['pin-off'] : ICONS.pin}</button>
+      <button class="swipe-act danger" data-swipe="delete" data-id="${esc(n.id)}" title="Удалить">${ICONS.trash}</button>
     </div>
     <button class="note-card swipe-body" data-note="${esc(n.id)}">
       <div class="note-card-title">${title}</div>
@@ -1522,17 +1524,17 @@ document.getElementById('notes-compose').addEventListener('click', () => {
   const bar = document.getElementById('notes-bar');
   const viewport = window.visualViewport;
 
-  // Пока открыта клавиатура, iOS перестаёт держать position: fixed. Двигать полосу из
-  // JS на каждый кадр бесполезно: прокрутка идёт на композиторе, а скрипт — на основном
-  // потоке, и полоса всегда на кадр позади пальца. Поэтому на время ввода список
-  // прокручивается внутри .screens ростом с видимую область: страница неподвижна,
-  // полосе хватает одного top, и двигать её больше не нужно.
-  const screens = document.querySelector('.screens');
+  // Пока открыта клавиатура, iOS перестаёт держать position: fixed, и любая прокрутка
+  // уводит полосу. Поэтому делаем как сам айфон: начал листать — клавиатура убирается.
+  // Без клавиатуры fixed работает как обычно, полоса просто садится на низ экрана,
+  // и никакой математики не нужно. Режим поиска при этом остаётся включённым.
+  let typing = false;
 
-  function fitSearchLayout() {
-    if (!viewport || !document.body.classList.contains('searching')) return;
-    screens.style.height = viewport.height + 'px';
-    bar.style.top = (viewport.offsetTop + viewport.height - bar.offsetHeight - 8) + 'px';
+  function placeBar() {
+    if (!typing || !viewport) return;
+    bar.style.position = 'absolute';
+    bar.style.bottom = 'auto';
+    bar.style.top = (viewport.pageTop + viewport.height - bar.offsetHeight - 8) + 'px';
   }
 
   input.addEventListener('input', () => {
@@ -1542,22 +1544,26 @@ document.getElementById('notes-compose').addEventListener('click', () => {
 
   input.addEventListener('focus', () => {
     const keepY = window.scrollY;
+    typing = true;
     document.body.classList.add('searching');
-    fitSearchLayout();
-    screens.scrollTop = keepY;        // прокрутку переносим со страницы в контейнер
-    window.scrollTo(0, 0);
+    // придерживаем прокрутку, пока клавиатура выезжает: иначе iOS уводит список к полю
+    const hold = setInterval(() => window.scrollTo(0, keepY), 16);
+    setTimeout(() => clearInterval(hold), 350);
+    placeBar();
   });
 
   input.addEventListener('blur', () => {
-    const keepY = screens.scrollTop;
-    document.body.classList.remove('searching');
-    screens.style.height = '';
+    typing = false;
+    bar.style.position = '';
     bar.style.top = '';
-    window.scrollTo(0, keepY);        // и обратно, чтобы список остался на том же месте
+    bar.style.bottom = '';
   });
 
-  // высота видимой области меняется только когда клавиатура выезжает или прячется
-  if (viewport) viewport.addEventListener('resize', fitSearchLayout);
+  // жест прокрутки убирает клавиатуру — дальше список листается как обычно
+  window.addEventListener('touchmove', () => { if (typing) input.blur(); }, { passive: true });
+
+  // единственный момент, когда полосу надо поставить: клавиатура выехала
+  if (viewport) viewport.addEventListener('resize', placeBar);
 
 
 
@@ -1568,6 +1574,7 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     state.noteQuery = '';
     renderNotes();
     input.blur();
+    document.body.classList.remove('searching');
   });
 })();
 

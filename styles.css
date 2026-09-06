@@ -332,7 +332,10 @@ input:focus, select:focus { border-color: var(--accent); }
 .task.done .task-title { color: var(--dim); text-decoration: line-through; }
 
 /* выполненные свёрнуты до строки и приглушены */
-.task.done { padding: 10px 14px; opacity: 0.55; }
+/* Прозрачность вешаем на содержимое, а не на саму строку: строка перекрывает
+   кнопки свайпа, и полупрозрачная просвечивала бы их насквозь. */
+.task.done { padding: 10px 14px; }
+.task.done > * { opacity: 0.55; }
 .task.done .task-title { font-size: 14px; }
 .task.done .task-meta { margin-top: 2px; }
 .group-title span { margin-left: 6px; letter-spacing: 0; opacity: 0.7; }
@@ -1137,14 +1140,17 @@ body.sheet-open .fab { display: none; }
 .swipe-act {
   flex: 1 1 0;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
-  white-space: nowrap;
   border: none;
   background: var(--elevated);
   color: var(--text);
-  font-family: inherit;
-  font-size: 13px;
 }
+
+.swipe-act svg { width: 21px; height: 21px; flex-shrink: 0; }
+.swipe-act.is-on { color: var(--accent); }
 
 .swipe-act.danger { background: var(--red); color: #fff; }
 
@@ -1490,33 +1496,23 @@ body.sheet-open { background: var(--surface); }
 .notes-cancel {
   display: none;
   flex-shrink: 0;
-  padding: 0 4px;
+  width: 44px; height: 44px;
+  align-items: center;
+  justify-content: center;
   border: none;
-  background: none;
-  color: var(--accent);
-  font-family: inherit;
-  font-size: 15px;
+  border-radius: 50%;
+  background: var(--elevated);
+  color: var(--muted);
 }
+
+.notes-cancel [data-icon] { font-size: 20px; }
+.notes-cancel:active { background: var(--hover); }
 
 body.searching .notes-compose { display: none; }
-body.searching .notes-cancel { display: block; }
+body.searching .notes-cancel { display: flex; }
 body.searching .tabbar { opacity: 0; pointer-events: none; }
 
-/* Пока открыта клавиатура, iOS перестаёт держать position: fixed. Чтобы ничего не
-   пересчитывать на каждый кадр, на время ввода список прокручивается внутри своего
-   контейнера ростом с видимую область — страница при этом неподвижна, а полосе
-   достаточно один раз задать top. */
-body.searching .screens {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-body.searching .notes-bar {
-  position: absolute;
-  bottom: auto;
-}
+body.searching .notes-bar { bottom: calc(8px + var(--safe-bottom)); }
 
 /* пока открыта заметка, панель уезжает вместе с экраном */
 .app-root.pushed .notes-bar { opacity: 0; }
