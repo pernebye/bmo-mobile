@@ -1618,10 +1618,13 @@ document.getElementById('notes-compose').addEventListener('click', () => {
   // приблизительную: важно лишь оказаться выше её края.
   const KB_KEY = 'bmo-kb';
   let keyboard = Number(localStorage.getItem(KB_KEY) || 0);
+  let baseHeight = 0;   // высота экрана до появления клавиатуры
 
   function placeBar() {
     if (!typing || !viewport) return;
-    const kb = window.innerHeight - viewport.height;
+    // innerHeight при открытой клавиатуре сам становится равен видимой области,
+    // поэтому высоту клавиатуры считаем от замера ДО фокуса, а не от текущего
+    const kb = (baseHeight || window.innerHeight) - viewport.height;
     if (kb > 120) {
       keyboard = Math.round(kb);
       try { localStorage.setItem(KB_KEY, keyboard); } catch {}
@@ -1660,7 +1663,9 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     // прокрутки, и Safari уводит её к полю. Пока идёт ввод, прокрутку запрещаем —
     // тогда уводить нечего, и список стоит на месте.
     document.body.classList.add('typing');
-    clampRoot(window.innerHeight - (keyboard || Math.round(window.innerHeight * 0.45)));
+    baseHeight = window.innerHeight;
+    // лучше промахнуться вверх: если поле окажется под клавиатурой, Safari прокрутит страницу
+    clampRoot(window.innerHeight - (keyboard || Math.round(window.innerHeight * 0.52)));
     trace('focus');
     // Сразу закрепляем полосу там, где она и так видна. Раньше здесь удерживалась
     // прокрутка, и это дралось с iOS: список прыгал вниз и уезжал обратно. Теперь
@@ -1668,7 +1673,7 @@ document.getElementById('notes-compose').addEventListener('click', () => {
     // просто поднимется на своё место.
     bar.style.position = 'absolute';
     bar.style.bottom = 'auto';
-    const kb = keyboard || Math.round(window.innerHeight * 0.45);
+    const kb = keyboard || Math.round(window.innerHeight * 0.52);
     bar.style.top = (window.scrollY + window.innerHeight - kb - bar.offsetHeight - 8) + 'px';
   });
 
