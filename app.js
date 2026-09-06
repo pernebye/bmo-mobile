@@ -2022,7 +2022,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && to
 // ВРЕМЕННАЯ диагностика поиска — снять после замера
 (() => {
   const box = document.createElement('div');
-  box.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:rgba(0,0,0,.85);'
+  box.style.cssText = 'position:absolute;left:8px;right:8px;z-index:9999;background:rgba(0,0,0,.9);'
     + 'color:#35ff6d;font:11px/1.35 ui-monospace,Menlo,monospace;padding:5px 7px;white-space:pre;'
     + 'pointer-events:none';
   box.hidden = true;
@@ -2035,6 +2035,8 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && to
     const bar = document.getElementById('notes-bar').getBoundingClientRect();
     const first = document.querySelector('#notes-list .group-title');
     const head = first ? Math.round(first.getBoundingClientRect().top) : -1;
+    const barEl = document.getElementById('notes-bar');
+    box.style.top = (parseFloat(barEl.style.top || 0) - 76) + 'px';   // прямо над полосой поиска
     box.textContent =
       `scrollY ${Math.round(scrollY)}  innH ${innerHeight}\n`
       + `vv off ${Math.round(vv.offsetTop)} page ${Math.round(vv.pageTop)} h ${Math.round(vv.height)}\n`
