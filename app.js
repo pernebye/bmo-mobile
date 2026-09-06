@@ -1637,6 +1637,12 @@ document.getElementById('notes-compose').addEventListener('click', () => {
   input.addEventListener('focus', () => {
     typing = true;
     document.body.classList.add('searching');
+    // Клавиатура укорачивает layout-вьюпорт (852 -> 449), у страницы появляется ход
+    // прокрутки, и Safari уводит её к полю. Пока идёт ввод, прокрутку запрещаем —
+    // тогда уводить нечего, и список стоит на месте.
+    const keepY = window.scrollY;
+    document.body.classList.add('typing');
+    window.scrollTo(0, keepY);
     // Сразу закрепляем полосу там, где она и так видна. Раньше здесь удерживалась
     // прокрутка, и это дралось с iOS: список прыгал вниз и уезжал обратно. Теперь
     // прокручивать нечего — поле уже в видимой части, а с выездом клавиатуры полоса
@@ -1649,6 +1655,7 @@ document.getElementById('notes-compose').addEventListener('click', () => {
 
   input.addEventListener('blur', () => {
     typing = false;
+    document.body.classList.remove('typing');
     bar.style.position = '';
     bar.style.top = '';
     bar.style.bottom = '';
@@ -2017,30 +2024,4 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && to
   setInterval(() => { if (!document.hidden) load(true); }, 60000);
   // адрес туннеля меняется вместе с перезагрузкой компьютера
   setInterval(resolveApi, 300000);
-})();
-
-// ВРЕМЕННАЯ диагностика поиска — снять после замера
-(() => {
-  const box = document.createElement('div');
-  box.style.cssText = 'position:absolute;left:8px;right:8px;z-index:9999;background:rgba(0,0,0,.9);'
-    + 'color:#35ff6d;font:11px/1.35 ui-monospace,Menlo,monospace;padding:5px 7px;white-space:pre;'
-    + 'pointer-events:none';
-  box.hidden = true;
-  document.body.appendChild(box);
-  const vv = window.visualViewport;
-  setInterval(() => {
-    const on = document.body.classList.contains('searching');
-    box.hidden = !on;
-    if (!on) return;
-    const bar = document.getElementById('notes-bar').getBoundingClientRect();
-    const first = document.querySelector('#notes-list .group-title');
-    const head = first ? Math.round(first.getBoundingClientRect().top) : -1;
-    const barEl = document.getElementById('notes-bar');
-    box.style.top = (parseFloat(barEl.style.top || 0) - 76) + 'px';   // прямо над полосой поиска
-    box.textContent =
-      `scrollY ${Math.round(scrollY)}  innH ${innerHeight}\n`
-      + `vv off ${Math.round(vv.offsetTop)} page ${Math.round(vv.pageTop)} h ${Math.round(vv.height)}\n`
-      + `bar top ${Math.round(bar.top)} bot ${Math.round(bar.bottom)} pos ${getComputedStyle(document.getElementById('notes-bar')).position}\n`
-      + `первая секция сверху ${head}`;
-  }, 250);
 })();
