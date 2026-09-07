@@ -184,10 +184,19 @@ input:focus, select:focus { border-color: var(--accent); }
   font-family: inherit;
   color: var(--text);
   -webkit-touch-callout: none;
+  -webkit-user-select: none;
   user-select: none;
 }
 
 .app-shell { position: relative; }
+
+/* буква вместо иконки — текст, и iOS при долгом нажатии тянется его выделить */
+.app-icon, .app-name, .peek-tile, .peek-tile * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.app-icon img { pointer-events: none; }
 
 .app-icon {
   width: 60px; height: 60px;
@@ -1581,8 +1590,8 @@ body.sheet-open .fab { display: none; }
   touch-action: none;             /* жесты забираем себе: пинч, перетаскивание, двойной тап */
 }
 
-.canvas-stage { transform-origin: 0 0; will-change: transform; }
-/* экспорт пишет ширину в тысячи пикселей — вписываем по ширине, дальше зум пальцами */
+/* ширину stage задаёт зум; во время жеста поверх — transform, при отпускании он снимается */
+.canvas-stage { width: 100%; transform-origin: 0 0; }
 .canvas-stage svg { display: block; width: 100%; height: auto; }
 
 .canvas-page .note-nav { position: relative; }

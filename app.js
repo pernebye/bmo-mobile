@@ -1142,7 +1142,13 @@ let peekJustClosed = false;
     press = {
       x: e.touches[0].clientX,
       y: e.touches[0].clientY,
-      timer: setTimeout(() => { press = null; open(tile, project); }, 420),
+      timer: setTimeout(() => {
+        press = null;
+        // за время удержания список мог перерисоваться фоновым обновлением — тогда
+        // старая плитка уже не в документе и её координаты нулевые: меню улетало в угол
+        const live = list.querySelector(`[data-project="${project.id}"]`);
+        if (live) open(live, project);
+      }, 420),
     };
   }, { passive: true });
 
@@ -1352,6 +1358,9 @@ async function loadCanvases(force) {
 }
 
 async function openCanvases(project) {
+  const own = (state.canvases || []).filter(c => c.projectId === project.id);
+  // единственную схему открываем сразу — список из одного пункта никому не нужен
+  if (own.length === 1) return showCanvas(own[0]);
   state.canvasFilter = project.id;
   openScreen('canvases');
   document.getElementById('screen-title').textContent = project.name;
@@ -1380,45 +1389,74 @@ async function renderCanvases() {
   list.innerHTML = [...groups.values()].map(g => `
     <div class="group-title">${esc(g.name)}<span>${g.items.length}</span></div>
     <div class="group">${g.items.map(item => `
-      <button class="note-card" data-canvas="${esc(item.snapshot)}" data-name="${esc(item.title)}">
+      <button class="note-card" data-canvas-id="${esc(item.snapshot)}" data-name="${esc(item.title)}">
         <div class="note-card-title">${esc(item.title)}</div>
         <div class="note-card-sub">${esc(item.where)}${item.snapshot ? '' : ' · снимка ещё нет'}</div>
       </button>`).join('')}
     </div>`).join('');
 }
 
-// Просмотр: картинка вписывается в экран, дальше — пальцами. Свой зум вместо
-// системного: общая настройка viewport запрещает масштабировать страницу, и это
-// правильно для всех экранов, кроме этого.
+// Просмотр. Масштаб — через настоящую ширину картинки, а не CSS-transform: transform
+// увеличивает уже растеризованный слой, и текст на схеме превращается в кашу. Во время
+// жеста transform всё же используем (иначе рывки), а при отпускании вписываем масштаб в
+// ширину — браузер перерисовывает вектор, и на любом приближении всё читается.
 const canvasZoom = (() => {
   const view = document.getElementById('canvas-view');
   const stage = document.getElementById('canvas-stage');
   const pointers = new Map();
-  let scale = 1, x = 0, y = 0;
-  let pinch = null;          // { dist, scale, cx, cy }
+  let zoom = 1;          // желаемый масштаб
+  let baked = 1;         // масштаб, уже вшитый в ширину stage
+  let maxZoom = 8;
+  let pinch = null;
   let lastTap = 0;
 
-  const apply = () => { stage.style.transform = `translate(${x}px, ${y}px) scale(${scale})`; };
+  const fitWidth = () => view.clientWidth;
 
-  function clamp() {
-    const w = stage.offsetWidth * scale;
-    const h = stage.offsetHeight * scale;
-    const vw = view.clientWidth, vh = view.clientHeight;
-    x = w <= vw ? (vw - w) / 2 : Math.min(0, Math.max(vw - w, x));
-    y = h <= vh ? Math.max(0, Math.min((vh - h) / 2, y)) : Math.min(0, Math.max(vh - h, y));
+  // точка (px, py) экрана → координаты внутри stage при вшитом масштабе
+  const inStage = (px, py) => ({ x: view.scrollLeft + px, y: view.scrollTop + py });
+
+  function commit(anchorX, anchorY) {
+    // anchorX/Y — точка экрана, которая должна остаться на месте
+    const at = inStage(anchorX, anchorY);
+    const ratio = zoom / baked;
+    stage.style.transform = '';
+    stage.style.width = `${Math.round(fitWidth() * zoom)}px`;
+    baked = zoom;
+    view.scrollLeft = at.x * ratio - anchorX;
+    view.scrollTop = at.y * ratio - anchorY;
   }
 
-  function reset() { scale = 1; x = 0; y = 0; clamp(); apply(); }
+  function setZoom(next, anchorX, anchorY) {
+    zoom = Math.min(maxZoom, Math.max(1, next));
+    commit(anchorX, anchorY);
+  }
+
+  function reset(svg) {
+    zoom = 1; baked = 1;
+    stage.style.transform = '';
+    stage.style.width = '';
+    view.scrollLeft = 0; view.scrollTop = 0;
+    // предел — полуторакратный натуральный размер: дальше уже нечего разглядывать
+    const natural = svg && svg.viewBox && svg.viewBox.baseVal.width;
+    maxZoom = natural ? Math.max(4, natural * 1.5 / fitWidth()) : 8;
+  }
 
   view.addEventListener('pointerdown', (e) => {
     view.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const rect = view.getBoundingClientRect();
     if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
-      pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y), scale, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, x, y };
+      const cx = (a.x + b.x) / 2 - rect.left, cy = (a.y + b.y) / 2 - rect.top;
+      const origin = inStage(cx, cy);
+      pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y), zoom, cx, cy, origin };
+      stage.style.transformOrigin = `${origin.x}px ${origin.y}px`;
     } else if (pointers.size === 1) {
       const now = Date.now();
-      if (now - lastTap < 280) { scale > 1 ? reset() : zoomAt(2.5, e.clientX, e.clientY); }
+      if (now - lastTap < 280) {
+        const px = e.clientX - rect.left, py = e.clientY - rect.top;
+        if (zoom > 1.01) { zoom = 1; commit(px, py); } else setZoom(2.5, px, py);
+      }
       lastTap = now;
     }
   });
@@ -1429,63 +1467,69 @@ const canvasZoom = (() => {
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.size === 2 && pinch) {
       const [a, b] = [...pointers.values()];
-      const dist = Math.hypot(a.x - b.x, a.y - b.y);
-      const next = Math.min(8, Math.max(1, pinch.scale * dist / pinch.dist));
       const rect = view.getBoundingClientRect();
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      zoom = Math.min(maxZoom, Math.max(1, pinch.zoom * dist / pinch.dist));
       const cx = (a.x + b.x) / 2 - rect.left, cy = (a.y + b.y) / 2 - rect.top;
-      // точка под пальцами остаётся на месте
-      x = cx - (cx - pinch.x) * (next / pinch.scale) + ((a.x + b.x) / 2 - pinch.cx);
-      y = cy - (cy - pinch.y) * (next / pinch.scale) + ((a.y + b.y) / 2 - pinch.cy);
-      scale = next;
-      clamp(); apply();
-    } else if (pointers.size === 1 && scale > 1) {
-      x += e.clientX - prev.x;
-      y += e.clientY - prev.y;
-      clamp(); apply();
+      // растим вокруг точки под пальцами, а их смещение переносим сдвигом
+      stage.style.transform = `translate(${cx - pinch.cx}px, ${cy - pinch.cy}px) scale(${zoom / baked})`;
+    } else if (pointers.size === 1 && !pinch) {
+      view.scrollLeft -= e.clientX - prev.x;
+      view.scrollTop -= e.clientY - prev.y;
     }
   });
 
   const release = (e) => {
     pointers.delete(e.pointerId);
-    if (pointers.size < 2) pinch = null;
+    if (pinch && pointers.size < 2) {
+      // вшиваем масштаб: точка, вокруг которой растили, остаётся там, куда её сдвинули
+      const rect = view.getBoundingClientRect();
+      const last = [...pointers.values()][0];
+      const ax = last ? last.x - rect.left : pinch.cx;
+      const ay = last ? last.y - rect.top : pinch.cy;
+      const shiftX = ax - pinch.cx, shiftY = ay - pinch.cy;
+      stage.style.transform = '';
+      stage.style.width = `${Math.round(fitWidth() * zoom)}px`;
+      const ratio = zoom / baked;
+      baked = zoom;
+      view.scrollLeft = pinch.origin.x * ratio - pinch.cx - shiftX;
+      view.scrollTop = pinch.origin.y * ratio - pinch.cy - shiftY;
+      pinch = null;
+    }
   };
   view.addEventListener('pointerup', release);
   view.addEventListener('pointercancel', release);
 
-  function zoomAt(next, clientX, clientY) {
-    const rect = view.getBoundingClientRect();
-    const px = clientX - rect.left, py = clientY - rect.top;
-    x = px - (px - x) * (next / scale);
-    y = py - (py - y) * (next / scale);
-    scale = next;
-    clamp(); apply();
-  }
-
   return { reset };
 })();
 
-document.getElementById('canvas-list').addEventListener('click', async (e) => {
-  const item = e.target.closest('[data-canvas]');
-  if (!item) return;
+async function showCanvas(item) {
   const page = document.getElementById('canvas-page');
   const stage = document.getElementById('canvas-stage');
-  document.getElementById('canvas-title').textContent = item.dataset.name;
+  document.getElementById('canvas-title').textContent = item.title;
   stage.innerHTML = '<div class="empty">Загружаю…</div>';
   page.classList.add('open');
   document.getElementById('app-root').classList.add('pushed');
-  if (!item.dataset.canvas) {
+  if (!item.snapshot) {
     stage.innerHTML = '<div class="empty">Снимка ещё нет. Откройте схему на компьютере — '
       + 'он появится после первого сохранения.</div>';
     return;
   }
   try {
-    const res = await fetch(apiBase + '/api/canvas?key=' + encodeURIComponent(item.dataset.canvas),
+    const res = await fetch(apiBase + '/api/canvas?key=' + encodeURIComponent(item.snapshot),
       { headers: { Authorization: 'Bearer ' + token } });
     stage.innerHTML = await res.text();
-    canvasZoom.reset();
+    canvasZoom.reset(stage.querySelector('svg'));
   } catch {
     stage.innerHTML = '<div class="empty">Не удалось загрузить схему</div>';
   }
+}
+
+document.getElementById('canvas-list').addEventListener('click', (e) => {
+  const card = e.target.closest('[data-canvas-id]');
+  if (!card) return;
+  const item = (state.canvases || []).find(c => c.snapshot === card.dataset.canvasId || c.title === card.dataset.name);
+  if (item) showCanvas(item);
 });
 
 document.getElementById('canvas-back').addEventListener('click', () => {
