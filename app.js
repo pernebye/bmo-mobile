@@ -2259,24 +2259,34 @@ function continueList() {
   const title = document.getElementById('n-title');
   const root = document.getElementById('app-root');
   const sheet = document.getElementById('link-sheet');
+  const backdrop = document.getElementById('link-backdrop');
   const viewport = window.visualViewport;
   let savedRange = null;
 
-  function place() {
-    if (bar.hidden || !viewport) return;
+  // Экран запирается и под панелью, и под шторкой: иначе фон продолжает прокручиваться,
+  // пока шторка стоит на месте.
+  function lock() {
+    if (!viewport) return;
     // без хода прокрутки Safari не уводит экран вверх и шапка заметки остаётся на месте
     root.style.height = viewport.height + 'px';
     root.style.overflow = 'hidden';
+  }
+
+  function place() {
+    if (bar.hidden || !viewport) return;
+    lock();
     // Панель — ребёнок body, поэтому считаем в координатах документа: pageTop уже
     // учитывает и прокрутку страницы, и сдвиг видимой области. Так же стоит поиск.
     bar.style.top = Math.round(viewport.pageTop + viewport.height - bar.offsetHeight - 2) + 'px';
-    placeSheet();
   }
 
   // шторка ссылки садится на нижний край видимой области, как и панель
   function placeSheet() {
     if (!viewport || !sheet.classList.contains('open')) return;
+    lock();
     sheet.style.top = Math.round(viewport.pageTop + viewport.height - sheet.offsetHeight) + 'px';
+    backdrop.style.top = Math.round(viewport.pageTop) + 'px';
+    backdrop.style.height = Math.round(viewport.height) + 'px';
   }
 
   function show() {
@@ -2300,13 +2310,16 @@ function continueList() {
     }, 80));
   }
   if (viewport) {
-    viewport.addEventListener('resize', place);
-    viewport.addEventListener('scroll', place);
-    viewport.addEventListener('resize', placeSheet);
+    for (const event of ['resize', 'scroll']) {
+      viewport.addEventListener(event, () => { place(); placeSheet(); });
+    }
   }
   // Safari прокручивает документ, чтобы показать курсор — тем сильнее, чем ниже строка,
   // и слой заметки уезжает вместе с ним. Пересчитываем положение после каждого сдвига.
-  window.addEventListener('scroll', () => { if (!bar.hidden) place(); }, { passive: true });
+  window.addEventListener('scroll', () => {
+    if (!bar.hidden) place();
+    placeSheet();
+  }, { passive: true });
   document.addEventListener('selectionchange', () => {
     if (bar.hidden) return;
     reflectFmt();
@@ -2388,19 +2401,23 @@ function continueList() {
     document.getElementById('link-name').value = savedRange ? savedRange.toString() : '';
     document.getElementById('link-url').value = '';
     bar.hidden = true;                       // панель и шторка не должны налезать друг на друга
+    backdrop.hidden = false;
     sheet.classList.add('open');
     placeSheet();
-    setTimeout(() => document.getElementById('link-url').focus(), 80);
+    // фокус поднимает клавиатуру и меняет видимую область — досаживаем шторку по месту
+    setTimeout(() => { document.getElementById('link-url').focus(); placeSheet(); }, 80);
   }
 
   function closeSheet() {
     sheet.classList.remove('open');
     sheet.style.top = '';
+    backdrop.hidden = true;
     bar.hidden = false;
     place();
   }
 
   document.getElementById('link-cancel').addEventListener('click', closeSheet);
+  backdrop.addEventListener('click', closeSheet);
 
   document.getElementById('link-apply').addEventListener('click', () => {
     const url = document.getElementById('link-url').value.trim();
