@@ -1048,6 +1048,7 @@ let peekJustClosed = false;
     if ((project.devCommands || []).length) actions.push(['dev', 'Dev-серверы', ICONS.play]);
     if (project.prodUrl) actions.push(['site', 'Открыть сайт', ICONS.globe]);
     if (project.repoUrl) actions.push(['repo', 'Репозиторий', ICONS.github]);
+    actions.push(['canvas', 'Схемы', ICONS.grid]);
     actions.push(['docs', 'Инструкция и память', ICONS.book]);
     for (const [act, label, icon] of actions) {
       const item = document.createElement('button');
@@ -1057,6 +1058,7 @@ let peekJustClosed = false;
         if (act === 'site') window.open(project.prodUrl, '_blank', 'noopener');
         else if (act === 'repo') window.open(project.repoUrl, '_blank', 'noopener');
         else if (act === 'docs') openProjectDocs(project);
+        else if (act === 'canvas') openCanvases(project);
         else runProject(project, act);
       });
       menu.appendChild(item);
@@ -1279,6 +1281,61 @@ document.getElementById('btn-config').addEventListener('click', () => openScreen
 
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => openScreen(tab.dataset.target));
+});
+
+// Схемы проекта. На телефоне только просмотр: показываем снимок, который редактор
+// кладёт рядом со сценой. Ничего запускать не нужно.
+async function openCanvases(project) {
+  openScreen('config');
+  const list = document.getElementById('config-list');
+  document.getElementById('screen-title').textContent = project.name;
+  list.innerHTML = '<div class="empty">Ищу схемы…</div>';
+  let items = [];
+  try {
+    const res = await api('/api/canvases?id=' + encodeURIComponent(project.id));
+    items = res.items || [];
+  } catch {
+    list.innerHTML = '<div class="empty">Компьютер недоступен</div>';
+    return;
+  }
+  if (!items.length) {
+    list.innerHTML = '<div class="empty">У проекта нет схем</div>';
+    return;
+  }
+  list.innerHTML = '<div class="group-title">Схемы<span>' + items.length + '</span></div><div class="group">'
+    + items.map(item => `<button class="note-card" data-canvas="${esc(item.snapshot)}" data-name="${esc(item.title)}">
+        <div class="note-card-title">${esc(item.title)}</div>
+        <div class="note-card-sub">${esc(item.where)}${item.snapshot ? '' : ' · снимка ещё нет'}</div>
+      </button>`).join('')
+    + '</div>';
+}
+
+document.getElementById('config-list').addEventListener('click', async (e) => {
+  const item = e.target.closest('[data-canvas]');
+  if (!item) return;
+  const page = document.getElementById('canvas-page');
+  const box = document.getElementById('canvas-view');
+  document.getElementById('canvas-title').textContent = item.dataset.name;
+  box.innerHTML = '<div class="empty">Загружаю…</div>';
+  page.classList.add('open');
+  document.getElementById('app-root').classList.add('pushed');
+  if (!item.dataset.canvas) {
+    box.innerHTML = '<div class="empty">Снимка ещё нет. Откройте схему на компьютере — '
+      + 'он появится после первого сохранения.</div>';
+    return;
+  }
+  try {
+    const res = await fetch(apiBase + '/api/canvas?key=' + encodeURIComponent(item.dataset.canvas),
+      { headers: { Authorization: 'Bearer ' + token } });
+    box.innerHTML = await res.text();
+  } catch {
+    box.innerHTML = '<div class="empty">Не удалось загрузить схему</div>';
+  }
+});
+
+document.getElementById('canvas-back').addEventListener('click', () => {
+  document.getElementById('canvas-page').classList.remove('open');
+  document.getElementById('app-root').classList.remove('pushed');
 });
 
 // --- конфиги и просмотр файлов ---
