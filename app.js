@@ -2064,7 +2064,7 @@ function continueList() {
     root.style.overflow = 'hidden';
     // Панель — ребёнок body, поэтому считаем в координатах документа: pageTop уже
     // учитывает и прокрутку страницы, и сдвиг видимой области. Так же стоит поиск.
-    bar.style.top = Math.round(viewport.pageTop + viewport.height - bar.offsetHeight - 8) + 'px';
+    bar.style.top = Math.round(viewport.pageTop + viewport.height - bar.offsetHeight - 2) + 'px';
   }
 
   function show() {
