@@ -1537,7 +1537,7 @@ function fitTitle() {
 
 // строка, начинающаяся с «# », — заголовок раздела внутри заметки
 // строка, начинающаяся с «# », — заголовок раздела
-const NOTE_HEAD = /^#\s+\S/;
+const NOTE_HEAD = /^#{1,2}\s+\S/;
 const NOTE_CHECK = /^- \[( |x)\] /;
 
 // Начертания. В редакторе живут только элементы с этими классами — символы разметки
@@ -1583,12 +1583,12 @@ function lineNode(text) {
   const line = document.createElement('div');
   line.className = 'note-line';
   const check = text.match(NOTE_CHECK);
-  const head = text.match(/^#\s+/);
+  const head = text.match(/^(#{1,2})\s+/);
   if (check) {
     line.classList.add('note-check');
     if (check[1] === 'x') line.classList.add('done');
   } else if (head) {
-    line.classList.add('note-h');
+    line.classList.add(head[1] === '##' ? 'note-h2' : 'note-h');
   }
   line.appendChild(inlineNodes(text.slice(check ? check[0].length : (head ? head[0].length : 0))));
   return line;
@@ -1612,6 +1612,7 @@ function lineText(line) {
   }
   out = out.replace(new RegExp(ZW, 'g'), '');
   if (line.classList.contains('note-h')) return '# ' + out;
+  if (line.classList.contains('note-h2')) return '## ' + out;
   if (line.classList.contains('note-check')) {
     return (line.classList.contains('done') ? '- [x] ' : '- [ ] ') + out;
   }
@@ -1664,7 +1665,15 @@ function toggleMark(kind) {
   if (!line) return;
   if (kind === 'head') {
     line.classList.remove('note-check', 'done');
-    line.classList.toggle('note-h');
+    // одна кнопка перебирает уровни: обычный -> заголовок -> подзаголовок -> обычный
+    if (line.classList.contains('note-h')) {
+      line.classList.remove('note-h');
+      line.classList.add('note-h2');
+    } else if (line.classList.contains('note-h2')) {
+      line.classList.remove('note-h2');
+    } else {
+      line.classList.add('note-h');
+    }
   } else {
     line.classList.remove('note-h');
     if (line.classList.contains('note-check')) line.classList.remove('note-check', 'done');
