@@ -319,10 +319,16 @@ async function load(silent) {
       await resolveApi(true);
       data = await api('/api/state');
     }
+    if (localNotes.count()) {
+      const sent = await localNotes.sync(data.notes);
+      if (sent) toast(sent === 1 ? 'Заметка с телефона отправлена' : `Заметок отправлено: ${sent}`);
+      data = await api('/api/state');
+    }
     applyState(data);
     try { localStorage.setItem(KEY_STATE, JSON.stringify({ data, at: Date.now() })); } catch {}
     setOffline(false);
     loadFavicons();
+    pushSetup.refresh();
   } catch (err) {
     if (err.message === 'unauthorized') return;
     // компьютер выключен или туннель упал: показываем последнее известное, но ничего не даём менять
@@ -405,7 +411,7 @@ function setOffline(on, cachedAt) {
   document.getElementById('offline-pill').hidden = !on;
   const bar = document.getElementById('offline-bar');
   bar.hidden = !on;
-  if (on && cachedAt) bar.textContent = `Нет связи с компьютером — данные на ${ago(new Date(cachedAt).toISOString())}, изменения недоступны`;
+  if (on && cachedAt) bar.textContent = `Нет связи с компьютером — данные на ${ago(new Date(cachedAt).toISOString())}. Заметки сохранятся, когда связь появится`;
   if (on) sheet.close();
 }
 
@@ -1628,7 +1634,7 @@ function noteCard(n) {
     </div>
     <button class="note-card swipe-body" data-note="${esc(n.id)}">
       <div class="note-card-title">${title}</div>
-      <div class="note-card-sub"><span class="note-card-when">${noteWhen(n.updatedAt)}</span>${snippet ? '&nbsp;&nbsp;' + snippet : ''}</div>
+      <div class="note-card-sub"><span class="note-card-when">${noteWhen(n.updatedAt)}</span>${n.local ? '<span class="note-local">ждёт связи</span>' : ''}${snippet ? '&nbsp;&nbsp;' + snippet : ''}</div>
     </button>
   </div>`;
 }
@@ -1795,6 +1801,8 @@ function fitTitle() {
 // строка, начинающаяся с «# », — заголовок раздела
 const NOTE_HEAD = /^#{1,2}\s+\S/;
 const NOTE_CHECK = /^- \[( |x)\] /;
+// «1. », «2) », «- », «• » — список продолжается после Enter, как в Заметках на айфоне
+const LIST_MARK = /^(\s*)(?:(\d+)([.)])|([-•*]))\s/;
 
 // Начертания. В редакторе живут только элементы с этими классами — символы разметки
 // в текст не попадают, поэтому их нечем обнажить при правке. Обратно в текст они
@@ -2040,6 +2048,68 @@ function reflectFmt() {
   }
 }
 
+// Правки без связи с компьютером. Очередь лежит в localStorage вместе с кэшем состояния,
+// чтобы заметка пережила перезапуск приложения, и уходит на компьютер при первой же связи.
+const KEY_PENDING = 'bmo-note-pending';
+const localNotes = {
+  read() { try { return JSON.parse(localStorage.getItem(KEY_PENDING) || '{}'); } catch { return {}; } },
+  write(map) { try { localStorage.setItem(KEY_PENDING, JSON.stringify(map)); } catch {} },
+  count() { return Object.keys(this.read()).length; },
+  isLocal(id) { return String(id || '').startsWith('local-'); },
+  newId() { return 'local-' + Date.now().toString(36); },
+  persist() {
+    const cached = readCachedState() || { data: {}, at: Date.now() };
+    cached.data.notes = state.notes;
+    try { localStorage.setItem(KEY_STATE, JSON.stringify(cached)); } catch {}
+  },
+  keep(id, patch) {
+    const map = this.read();
+    map[id] = { ...(map[id] || {}), ...patch, id, at: new Date().toISOString() };
+    this.write(map);
+    let note = state.notes.find(n => n.id === id);
+    if (!note) { note = { id, title: '', body: '', pinned: false }; state.notes.unshift(note); }
+    Object.assign(note, patch, { updatedAt: map[id].at, local: true });
+    this.persist();
+  },
+  drop(id) {
+    const map = this.read();
+    delete map[id];
+    this.write(map);
+    state.notes = state.notes.filter(n => n.id !== id);
+    this.persist();
+  },
+  // побеждает более поздняя правка: если на компьютере заметку трогали позже, телефонную
+  // версию не накатываем, а говорим об этом
+  async sync(serverNotes) {
+    const map = this.read();
+    let sent = 0;
+    for (const item of Object.values(map)) {
+      try {
+        if (this.isLocal(item.id)) {
+          const res = await api('/api/note-create', 'POST', { title: item.title || '', body: item.body || '' });
+          if (!res || !res.ok) continue;
+          if (noteEditor.active && noteEditor.id === item.id) noteEditor.id = res.note.id;
+          sent++;
+        } else {
+          const server = (serverNotes || []).find(n => n.id === item.id);
+          if (server && server.updatedAt > item.at) {
+            toast(`«${(item.title || server.title || 'Заметка').trim()}» изменена на компьютере позже — правка с телефона пропущена`);
+          } else if (server) {
+            const res = await api('/api/note-update', 'POST', { id: item.id, title: item.title, body: item.body });
+            if (!res || !res.ok) continue;
+            sent++;
+          }
+        }
+        delete map[item.id];
+        this.write(map);
+      } catch {
+        return sent;                       // связь снова пропала — дождёмся следующего раза
+      }
+    }
+    return sent;
+  },
+};
+
 const noteEditor = {
   id: null, pinned: false, saveTimer: null, active: false, creating: null,
   open(note) {
@@ -2061,37 +2131,49 @@ const noteEditor = {
   // this.id === null и заводили две копии
   _ensure() {
     if (this.id) return Promise.resolve(this.id);
-    if (state.offline) return Promise.resolve(null);
+    // без связи заметка живёт под временным id и уедет на компьютер при синхронизации
+    if (state.offline) { this.id = localNotes.newId(); return Promise.resolve(this.id); }
     if (!this.creating) {
       this.creating = api('/api/note-create', 'POST', { title: '', body: '' })
         .then(res => {
           if (res && res.ok) { this.id = res.note.id; state.notes.unshift(res.note); }
           return this.id;
         })
-        .catch(() => this.id)
+        .catch(() => { this.id = this.id || localNotes.newId(); return this.id; })
         .finally(() => { this.creating = null; });
     }
     return this.creating;
   },
+  _stamp(text) {
+    if (this.active) document.getElementById('n-date').textContent = text;
+  },
   async save() {
     // редактор закрыт, а поля ещё хранят текст: iOS досылает input при уходе
     // клавиатуры, и такое сохранение заводило копию заметки
-    if (!this.active || state.offline) return;
+    if (!this.active) return;
     const title = document.getElementById('n-title').value;
     const body = readBody();
     if (!this.id && !title.trim() && !body.trim()) return;   // пустую новую не создаём
     const id = await this._ensure();
     if (!id) return;
+    if (state.offline || localNotes.isLocal(id)) {
+      localNotes.keep(id, { title, body });
+      this._stamp(noteDate() + ' · на телефоне');
+      return;
+    }
     try {
       const res = await api('/api/note-update', 'POST', { id, title, body });
       if (res && res.ok && res.note) {
         const i = state.notes.findIndex(n => n.id === id);
         if (i >= 0) state.notes[i] = res.note;
-        if (this.active && this.id === id) {
-          document.getElementById('n-date').textContent = noteDate(res.note.updatedAt);
-        }
+        if (this.id === id) this._stamp(noteDate(res.note.updatedAt));
       }
-    } catch {}
+    } catch {
+      // компьютер пропал посреди набора: правка не теряется, а ждёт связи
+      localNotes.keep(id, { title, body });
+      this._stamp(noteDate() + ' · на телефоне');
+      setOffline(true, Date.now());
+    }
   },
   schedule() { clearTimeout(this.saveTimer); this.saveTimer = setTimeout(() => this.save(), 700); },
   _reflectPin() {
@@ -2111,6 +2193,13 @@ const noteEditor = {
     } catch {}
   },
   async remove() {
+    if (localNotes.isLocal(this.id)) {
+      clearTimeout(this.saveTimer);
+      localNotes.drop(this.id);
+      this._hide();
+      renderNotes();
+      return;
+    }
     if (blocked()) return;
     if (!this.id) { this._hide(); return; }
     clearTimeout(this.saveTimer);
@@ -2158,6 +2247,7 @@ async function pinNote(id) {
 async function trashNote(id) {
   const note = state.notes.find(n => n.id === id);
   if (!note) return;
+  if (localNotes.isLocal(id)) { localNotes.drop(id); renderNotes(); return; }
   try { await api('/api/note-delete', 'POST', { id }); } catch {}
   state.notes = state.notes.filter(n => n.id !== id);
   state.notesTrash.unshift({ ...note, pinned: false, deletedAt: new Date().toISOString() });
@@ -2205,9 +2295,8 @@ document.getElementById('notes-list').addEventListener('click', async (e) => {
   const note = (state.notes || []).find(n => n.id === card.dataset.note);
   if (note) noteEditor.open(note);
 });
-document.getElementById('notes-compose').addEventListener('click', () => {
-  if (!blocked()) noteEditor.open(null);
-});
+// заметки пишутся и без связи — это единственное, что доступно офлайн целиком
+document.getElementById('notes-compose').addEventListener('click', () => noteEditor.open(null));
 (() => {
   const input = document.getElementById('notes-search');
   const cancel = document.getElementById('notes-cancel');
@@ -2436,19 +2525,38 @@ document.getElementById('n-body').addEventListener('input', () => {
   continueList();
   noteEditor.schedule();
 });
+let enterPressed = false;
+document.getElementById('n-body').addEventListener('keydown', (e) => { enterPressed = e.key === 'Enter'; });
 
-// Enter в списке продолжает список: новая пустая строка получает тот же маркер
-// Enter в списке продолжает список, а на пустом пункте — заканчивает его
+// Enter в списке продолжает список, а на пустом пункте — заканчивает его. Только сразу
+// после Enter: иначе строка, стёртая под пунктом, тоже получала маркер.
 function continueList() {
+  if (!enterPressed) return;
+  enterPressed = false;
   const line = currentLine();
   if (!line || line.textContent.trim()) return;
   const prev = line.previousElementSibling;
-  if (prev && prev.classList.contains('note-check') && prev.textContent.trim()) {
-    line.classList.add('note-check');
-    line.classList.remove('done');
-  } else if (line.classList.contains('note-check')) {
-    line.classList.remove('note-check', 'done');
+  if (!prev) return;
+  if (prev.classList.contains('note-check')) {
+    if (prev.textContent.trim()) {
+      line.classList.add('note-check');
+      line.classList.remove('done');
+    } else {
+      prev.classList.remove('note-check', 'done');
+      line.classList.remove('note-check', 'done');
+    }
+    return;
   }
+  const mark = prev.textContent.match(LIST_MARK);
+  if (!mark) return;
+  if (!prev.textContent.slice(mark[0].length).trim()) { prev.textContent = ''; return; }
+  line.textContent = mark[2] ? `${mark[1]}${Number(mark[2]) + 1}${mark[3]} ` : `${mark[1]}${mark[4]} `;
+  const caret = document.createRange();
+  caret.selectNodeContents(line);
+  caret.collapse(false);
+  const sel = document.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(caret);
 }
 
 // Панель форматирования над клавиатурой и лист «Ссылка».
@@ -2869,6 +2977,66 @@ document.getElementById('login-tg').addEventListener('click', async () => {
   }, 2600);
 });
 document.getElementById('scanner-cancel').addEventListener('click', stopScanner);
+
+// --- push-уведомления ---
+// Напоминания приходят на телефон и без Telegram: подписка через сервис-воркер уходит
+// на компьютер, а шлёт личный хаб. На iPhone работает только у приложения с экрана «Домой».
+const pushSetup = (() => {
+  const KEY_DISMISSED = 'bmo-push-dismissed';
+  const KEY_SYNCED = 'bmo-push-synced';
+  const banner = document.getElementById('push-banner');
+  const supported = 'PushManager' in window && 'Notification' in window && 'serviceWorker' in navigator;
+
+  function toKey(text) {
+    const clean = (text + '='.repeat((4 - text.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+    return Uint8Array.from(atob(clean), c => c.charCodeAt(0));
+  }
+
+  async function subscribe(key) {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toKey(key) });
+    const ua = navigator.userAgent;
+    const device = ua.includes('iPhone') ? 'iPhone' : ua.includes('Android') ? 'Android' : 'телефон';
+    await api('/api/push-subscribe', 'POST', { subscription: sub.toJSON(), device });
+    try { localStorage.setItem(KEY_SYNCED, String(Date.now())); } catch {}
+  }
+
+  const show = (on) => { banner.hidden = !on; };
+
+  async function refresh() {
+    if (!supported || state.offline) return show(false);
+    if (Notification.permission === 'granted') {
+      show(false);
+      // адрес подписки у iOS иногда меняется — раз в сутки напоминаем компьютеру о себе
+      if (Date.now() - Number(localStorage.getItem(KEY_SYNCED) || 0) < 86400e3) return;
+      try { const { key } = await api('/api/push-key'); if (key) await subscribe(key); } catch {}
+      return;
+    }
+    if (Notification.permission === 'denied' || localStorage.getItem(KEY_DISMISSED)) return show(false);
+    try { const { key } = await api('/api/push-key'); show(!!key); } catch { show(false); }
+  }
+
+  banner.querySelector('[data-push="on"]').addEventListener('click', async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') { show(false); return toast('Уведомления не разрешены'); }
+      const { key } = await api('/api/push-key');
+      await subscribe(key);
+      show(false);
+      toast('Напоминания будут приходить на телефон');
+      api('/api/push-test', 'POST', {}).catch(() => {});
+    } catch (err) {
+      toast('Не удалось включить: ' + (err.message || err));
+    }
+  });
+  banner.querySelector('[data-push="later"]').addEventListener('click', () => {
+    try { localStorage.setItem(KEY_DISMISSED, '1'); } catch {}
+    show(false);
+  });
+
+  return { refresh };
+})();
 
 // --- старт ---
 

@@ -1389,6 +1389,7 @@ body.sheet-open .fab { display: none; }
 }
 #n-title::placeholder { color: var(--dim); }
 #n-body {
+  position: relative;
   flex: 1; min-height: 50vh; padding: 0;
   font-family: inherit; font-size: 15px; line-height: 1.55; color: var(--text);
   outline: none;
@@ -1565,10 +1566,31 @@ body.sheet-open .fab { display: none; }
 .link-field { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--dim); }
 .link-field input { font-size: 16px; }
 
+/* подсказка лежит поверх первой строки, а не перед ней — иначе каретка вставала строкой ниже */
 #n-body:has(> .note-line:only-child:empty)::before {
   content: attr(data-placeholder);
   color: var(--dim);
+  position: absolute; top: 0; left: 0;
+  pointer-events: none;
 }
+
+.note-local { margin-left: 6px; font-size: 11px; color: var(--accent); }
+
+/* предложение включить уведомления — один раз, над списком задач */
+.push-banner {
+  margin: 2px 0 14px; padding: 12px 14px;
+  border: 1px solid var(--line-strong); border-radius: 12px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.push-text { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--muted); }
+.push-text b { font-size: 14.5px; color: var(--text); font-weight: 600; }
+.push-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.push-actions button {
+  font: inherit; font-size: 13.5px; padding: 7px 14px;
+  border-radius: 9px; border: 1px solid var(--line-strong);
+  background: none; color: var(--text);
+}
+.push-actions .push-on { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 /* Схема проекта — только просмотр: снимок редактора, который можно тянуть и приближать */
 .canvas-page {

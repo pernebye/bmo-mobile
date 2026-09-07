@@ -1,6 +1,6 @@
 // Оболочка кэшируется, данные всегда идут по сети — иначе можно увидеть
 // вчерашний список задач и решить, что всё сделано.
-const VERSION = 'v117';
+const VERSION = 'v118';
 const CACHE = 'bmo-shell-' + VERSION;
 // версия в адресах файлов должна совпадать с index.html, иначе кэш тянет старые копии
 const Q = '?v=' + VERSION.slice(1);
@@ -24,6 +24,28 @@ self.addEventListener('activate', (event) => {
       .then(() => self.clients.matchAll({ type: 'window' }))
       .then(clients => clients.forEach(client => client.postMessage({ type: 'updated', version: VERSION })))
   );
+});
+
+// Уведомление с хаба: заголовок, текст и куда вести по нажатию
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data && event.data.text() }; }
+  event.waitUntil(self.registration.showNotification(data.title || 'BMO', {
+    body: data.body || '',
+    icon: 'icon-256.png',
+    badge: 'icon-256.png',
+    tag: data.tag || undefined,
+    data: { url: data.url || './' },
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || './', self.location.href).href;
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    const open = list.find((c) => 'focus' in c);
+    return open ? open.focus() : self.clients.openWindow(target);
+  }));
 });
 
 self.addEventListener('fetch', (event) => {

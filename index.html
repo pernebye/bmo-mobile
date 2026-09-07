@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=117">
+<link rel="stylesheet" href="styles.css?v=118">
 </head>
 <body>
 
@@ -57,7 +57,7 @@
   <button class="topbar-btn" id="btn-config" title="Конфиги"><i data-icon="book"></i></button>
   <button class="topbar-btn" id="btn-sessions" title="Недавние сессии"><i data-icon="terminal"></i></button>
 </header>
-<div class="offline-bar" id="offline-bar" hidden>Нет связи с компьютером — показаны последние данные, изменения недоступны</div>
+<div class="offline-bar" id="offline-bar" hidden>Нет связи с компьютером — показаны последние данные. Заметки сохранятся, когда связь появится</div>
 <div class="ptr" id="ptr"><i data-icon="reload"></i></div>
 
 <main class="screens">
@@ -79,6 +79,10 @@
       <button class="chip" data-scope="today">Сегодня<span>0</span></button>
       <button class="chip" data-scope="week">Неделя<span>0</span></button>
       <button class="chip" data-scope="overdue">Просрочено<span>0</span></button>
+    </div>
+    <div class="push-banner" id="push-banner" hidden>
+      <div class="push-text"><b>Напоминания на телефон</b><span>Дедлайны и созвоны придут уведомлением, даже когда компьютер выключен</span></div>
+      <div class="push-actions"><button data-push="later">Позже</button><button class="push-on" data-push="on">Включить</button></div>
     </div>
     <div class="list" id="tasks-list"></div>
   </section>
@@ -307,7 +311,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=117"></script>
-<script src="app.js?v=117"></script>
+<script src="icons.js?v=118"></script>
+<script src="app.js?v=118"></script>
 </body>
 </html>
