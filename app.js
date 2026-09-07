@@ -878,7 +878,58 @@ const sheet = {
     document.getElementById('f-external-link').href = external.url || '#';
   },
 
+  // Вложения: ряд квадратиков. Миниатюры тянем отдельными запросами — так шторка
+  // открывается сразу, а картинки подтягиваются следом.
+  renderFiles(files) {
+    const strip = document.getElementById('f-file-strip');
+    const items = files || [];
+    document.getElementById('f-files-count').textContent = items.length || '';
+    document.getElementById('f-files').hidden = false;
+
+    strip.innerHTML = items.map(f => {
+      const src = `${apiBase}/api/file?task=${encodeURIComponent(state.sheet.item.id)}`
+        + `&id=${encodeURIComponent(f.id)}&thumb=1&k=${encodeURIComponent(token)}`;
+      const inner = f.kind === 'image'
+        ? `<img src="${src}" alt="${esc(f.name)}" loading="lazy">`
+        : `<span class="file-ext">${esc((f.name.split('.').pop() || 'файл').slice(0, 4).toUpperCase())}</span>`;
+      return `<button class="file-tile" data-file="${esc(f.id)}" title="${esc(f.name)}">
+        ${inner}<span class="file-drop" data-drop="${esc(f.id)}">×</span></button>`;
+    }).join('') + '<button class="file-tile file-add" id="f-file-add">+</button>';
+  },
+
+  async addFiles(list) {
+    const { item } = state.sheet;
+    if (!item || !list.length) return;
+    for (const file of list) {
+      try {
+        await fetch(`${apiBase}/api/file-add?task=${encodeURIComponent(item.id)}`, {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + token,
+            'X-File-Name': encodeURIComponent(file.name),
+            'Content-Type': file.type || 'application/octet-stream',
+          },
+          body: file,
+        });
+      } catch {
+        toast('Не удалось приложить ' + file.name);
+      }
+    }
+    await this.reloadFiles();
+  },
+
+  async reloadFiles() {
+    const { item } = state.sheet;
+    if (!item) return;
+    try {
+      const res = await api('/api/task?id=' + encodeURIComponent(item.id));
+      item.files = res.task ? res.task.files : item.files;
+    } catch { /* офлайн — оставим что было */ }
+    this.renderFiles(item.files);
+  },
+
   renderComments(comments) {
+    this.renderFiles((state.sheet.item || {}).files);
     document.getElementById('f-comment-list').innerHTML = comments.map(c => `
       <li class="comment${c.mine ? ' is-mine' : ''}">
         <div class="comment-head"><span class="comment-author${c.author === 'claude' ? ' is-claude' : ''}">${c.author === 'claude' ? `${ICONS.claude}Claude · ${esc((c.session || '').slice(0, 8) || '?')}` : (c.mine ? 'Вы' : esc(c.author || '—'))}</span><span>${humanStamp(c.at)}</span>${c.pending ? '<span class="comment-pending">отправляется…</span>' : ''}</div>
@@ -2533,6 +2584,31 @@ document.getElementById('sheet-backdrop').addEventListener('touchmove', (e) => e
 document.getElementById('f-save').addEventListener('click', () => sheet.save());
 document.getElementById('f-done').addEventListener('click', () => sheet.toggleDone());
 document.getElementById('f-comment-send').addEventListener('click', () => sheet.addComment());
+
+document.getElementById('f-file-strip').addEventListener('click', async (e) => {
+  if (e.target.closest('#f-file-add')) {
+    document.getElementById('f-file-input').click();
+    return;
+  }
+  const drop = e.target.closest('[data-drop]');
+  if (drop) {
+    await api('/api/file-remove', 'POST',
+      { task: state.sheet.item.id, id: drop.dataset.drop });
+    sheet.reloadFiles();
+    return;
+  }
+  const tile = e.target.closest('[data-file]');
+  if (tile) {
+    // полный файл открываем в новой вкладке: смотреть его внутри приложения незачем
+    window.open(`${apiBase}/api/file?task=${encodeURIComponent(state.sheet.item.id)}`
+      + `&id=${encodeURIComponent(tile.dataset.file)}&k=${encodeURIComponent(token)}`, '_blank');
+  }
+});
+
+document.getElementById('f-file-input').addEventListener('change', (e) => {
+  sheet.addFiles([...e.target.files]);
+  e.target.value = '';
+});
 document.getElementById('login-code').addEventListener('input', (e) => loginMood(e.target.value.trim() ? 'typing' : null));
 // у задачи из трекера стадия применяется сразу — кнопки «сохранить» у неё нет
 document.getElementById('f-stage').addEventListener('change', async (e) => {

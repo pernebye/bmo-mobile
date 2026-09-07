@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=114">
+<link rel="stylesheet" href="styles.css?v=115">
 </head>
 <body>
 
@@ -276,6 +276,11 @@
     <input type="text" id="f-check-add" placeholder="+ шаг" autocomplete="off">
   </div>
   <textarea id="f-notes" rows="3" placeholder="Заметки"></textarea>
+  <div class="f-files" id="f-files" data-only="task" hidden>
+    <div class="f-check-head"><span>Вложения</span><span id="f-files-count"></span></div>
+    <div class="file-strip" id="f-file-strip"></div>
+    <input type="file" id="f-file-input" accept="image/*,application/pdf" multiple hidden>
+  </div>
   <div class="f-comments" id="f-comments" data-only="task" hidden>
     <div class="f-check-head"><span>Комментарии</span><span id="f-comments-count"></span></div>
     <ul class="comment-list" id="f-comment-list"></ul>
@@ -296,7 +301,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=114"></script>
-<script src="app.js?v=114"></script>
+<script src="icons.js?v=115"></script>
+<script src="app.js?v=115"></script>
 </body>
 </html>
