@@ -1099,7 +1099,9 @@ let peekJustClosed = false;
     if ((project.devCommands || []).length) actions.push(['dev', 'Dev-серверы', ICONS.play]);
     if (project.prodUrl) actions.push(['site', 'Открыть сайт', ICONS.globe]);
     if (project.repoUrl) actions.push(['repo', 'Репозиторий', ICONS.github]);
-    actions.push(['canvas', 'Схемы', ICONS.grid]);
+    if ((state.canvases || []).some(c => c.projectId === project.id)) {
+      actions.push(['canvas', 'Схемы', ICONS.flows]);
+    }
     actions.push(['docs', 'Инструкция и память', ICONS.book]);
     for (const [act, label, icon] of actions) {
       const item = document.createElement('button');
@@ -1309,7 +1311,7 @@ document.getElementById('project-search').addEventListener('input', (e) => {
 
 const SCREEN_TITLES = {
   projects: 'Проекты', tasks: 'Задачи', calendar: 'Календарь',
-  sessions: 'Сессии', notes: 'Заметки', config: 'Конфиги',
+  sessions: 'Сессии', notes: 'Заметки', config: 'Конфиги', canvases: 'Схемы',
 };
 
 function openScreen(name) {
@@ -1324,6 +1326,7 @@ function openScreen(name) {
   document.getElementById('notes-bar').hidden = name !== 'notes';
   if (name !== 'notes') document.body.classList.remove('searching');
   if (name === 'config') renderConfig();
+  if (name === 'canvases') renderCanvases();
   window.scrollTo(0, 0);
 }
 
@@ -1331,56 +1334,157 @@ document.getElementById('btn-sessions').addEventListener('click', () => openScre
 document.getElementById('btn-config').addEventListener('click', () => openScreen('config'));
 
 document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => openScreen(tab.dataset.target));
+  tab.addEventListener('click', () => {
+    if (tab.dataset.target === 'canvases') state.canvasFilter = null;
+    openScreen(tab.dataset.target);
+  });
 });
 
 // Схемы проекта. На телефоне только просмотр: показываем снимок, который редактор
 // кладёт рядом со сценой. Ничего запускать не нужно.
+// Схемы. Список всех — со вкладки, одного проекта — из его меню. Сервер держит список
+// десять минут, мы — пока приложение открыто; по нему же меню решает, показывать ли кнопку.
+async function loadCanvases(force) {
+  if (state.canvases && !force) return state.canvases;
+  const res = await api('/api/canvases');
+  state.canvases = res.items || [];
+  return state.canvases;
+}
+
 async function openCanvases(project) {
-  openScreen('config');
-  const list = document.getElementById('config-list');
+  state.canvasFilter = project.id;
+  openScreen('canvases');
   document.getElementById('screen-title').textContent = project.name;
-  list.innerHTML = '<div class="empty">Ищу схемы…</div>';
-  let items = [];
+}
+
+async function renderCanvases() {
+  const list = document.getElementById('canvas-list');
+  if (!state.canvases) list.innerHTML = '<div class="empty">Ищу схемы…</div>';
+  let items;
   try {
-    const res = await api('/api/canvases?id=' + encodeURIComponent(project.id));
-    items = res.items || [];
+    items = await loadCanvases();
   } catch {
     list.innerHTML = '<div class="empty">Компьютер недоступен</div>';
     return;
   }
+  if (state.canvasFilter) items = items.filter(i => i.projectId === state.canvasFilter);
   if (!items.length) {
-    list.innerHTML = '<div class="empty">У проекта нет схем</div>';
+    list.innerHTML = '<div class="empty">Схем пока нет. Файл сцены — *.excalidraw в папке проекта.</div>';
     return;
   }
-  list.innerHTML = '<div class="group-title">Схемы<span>' + items.length + '</span></div><div class="group">'
-    + items.map(item => `<button class="note-card" data-canvas="${esc(item.snapshot)}" data-name="${esc(item.title)}">
+  const groups = new Map();
+  for (const item of items) {
+    if (!groups.has(item.projectId)) groups.set(item.projectId, { name: item.projectName, items: [] });
+    groups.get(item.projectId).items.push(item);
+  }
+  list.innerHTML = [...groups.values()].map(g => `
+    <div class="group-title">${esc(g.name)}<span>${g.items.length}</span></div>
+    <div class="group">${g.items.map(item => `
+      <button class="note-card" data-canvas="${esc(item.snapshot)}" data-name="${esc(item.title)}">
         <div class="note-card-title">${esc(item.title)}</div>
         <div class="note-card-sub">${esc(item.where)}${item.snapshot ? '' : ' · снимка ещё нет'}</div>
-      </button>`).join('')
-    + '</div>';
+      </button>`).join('')}
+    </div>`).join('');
 }
 
-document.getElementById('config-list').addEventListener('click', async (e) => {
+// Просмотр: картинка вписывается в экран, дальше — пальцами. Свой зум вместо
+// системного: общая настройка viewport запрещает масштабировать страницу, и это
+// правильно для всех экранов, кроме этого.
+const canvasZoom = (() => {
+  const view = document.getElementById('canvas-view');
+  const stage = document.getElementById('canvas-stage');
+  const pointers = new Map();
+  let scale = 1, x = 0, y = 0;
+  let pinch = null;          // { dist, scale, cx, cy }
+  let lastTap = 0;
+
+  const apply = () => { stage.style.transform = `translate(${x}px, ${y}px) scale(${scale})`; };
+
+  function clamp() {
+    const w = stage.offsetWidth * scale;
+    const h = stage.offsetHeight * scale;
+    const vw = view.clientWidth, vh = view.clientHeight;
+    x = w <= vw ? (vw - w) / 2 : Math.min(0, Math.max(vw - w, x));
+    y = h <= vh ? Math.max(0, Math.min((vh - h) / 2, y)) : Math.min(0, Math.max(vh - h, y));
+  }
+
+  function reset() { scale = 1; x = 0; y = 0; clamp(); apply(); }
+
+  view.addEventListener('pointerdown', (e) => {
+    view.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y), scale, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, x, y };
+    } else if (pointers.size === 1) {
+      const now = Date.now();
+      if (now - lastTap < 280) { scale > 1 ? reset() : zoomAt(2.5, e.clientX, e.clientY); }
+      lastTap = now;
+    }
+  });
+
+  view.addEventListener('pointermove', (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    const prev = pointers.get(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2 && pinch) {
+      const [a, b] = [...pointers.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      const next = Math.min(8, Math.max(1, pinch.scale * dist / pinch.dist));
+      const rect = view.getBoundingClientRect();
+      const cx = (a.x + b.x) / 2 - rect.left, cy = (a.y + b.y) / 2 - rect.top;
+      // точка под пальцами остаётся на месте
+      x = cx - (cx - pinch.x) * (next / pinch.scale) + ((a.x + b.x) / 2 - pinch.cx);
+      y = cy - (cy - pinch.y) * (next / pinch.scale) + ((a.y + b.y) / 2 - pinch.cy);
+      scale = next;
+      clamp(); apply();
+    } else if (pointers.size === 1 && scale > 1) {
+      x += e.clientX - prev.x;
+      y += e.clientY - prev.y;
+      clamp(); apply();
+    }
+  });
+
+  const release = (e) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinch = null;
+  };
+  view.addEventListener('pointerup', release);
+  view.addEventListener('pointercancel', release);
+
+  function zoomAt(next, clientX, clientY) {
+    const rect = view.getBoundingClientRect();
+    const px = clientX - rect.left, py = clientY - rect.top;
+    x = px - (px - x) * (next / scale);
+    y = py - (py - y) * (next / scale);
+    scale = next;
+    clamp(); apply();
+  }
+
+  return { reset };
+})();
+
+document.getElementById('canvas-list').addEventListener('click', async (e) => {
   const item = e.target.closest('[data-canvas]');
   if (!item) return;
   const page = document.getElementById('canvas-page');
-  const box = document.getElementById('canvas-view');
+  const stage = document.getElementById('canvas-stage');
   document.getElementById('canvas-title').textContent = item.dataset.name;
-  box.innerHTML = '<div class="empty">Загружаю…</div>';
+  stage.innerHTML = '<div class="empty">Загружаю…</div>';
   page.classList.add('open');
   document.getElementById('app-root').classList.add('pushed');
   if (!item.dataset.canvas) {
-    box.innerHTML = '<div class="empty">Снимка ещё нет. Откройте схему на компьютере — '
+    stage.innerHTML = '<div class="empty">Снимка ещё нет. Откройте схему на компьютере — '
       + 'он появится после первого сохранения.</div>';
     return;
   }
   try {
     const res = await fetch(apiBase + '/api/canvas?key=' + encodeURIComponent(item.dataset.canvas),
       { headers: { Authorization: 'Bearer ' + token } });
-    box.innerHTML = await res.text();
+    stage.innerHTML = await res.text();
+    canvasZoom.reset();
   } catch {
-    box.innerHTML = '<div class="empty">Не удалось загрузить схему</div>';
+    stage.innerHTML = '<div class="empty">Не удалось загрузить схему</div>';
   }
 });
 
@@ -2764,3 +2868,6 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && to
   // адрес туннеля меняется вместе с перезагрузкой компьютера
   setInterval(resolveApi, 300000);
 })();
+
+// схемы нужны меню проектов с самого начала, тянем в фоне
+loadCanvases().catch(() => {});

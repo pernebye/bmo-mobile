@@ -1575,12 +1575,26 @@ body.sheet-open .fab { display: none; }
 
 .canvas-view {
   flex: 1;
-  overflow: auto;
+  position: relative;
+  overflow: hidden;
   background: #fff;
-  -webkit-overflow-scrolling: touch;
+  touch-action: none;             /* жесты забираем себе: пинч, перетаскивание, двойной тап */
 }
 
-.canvas-view svg { display: block; min-width: 100%; }
+.canvas-stage { transform-origin: 0 0; will-change: transform; }
+/* экспорт пишет ширину в тысячи пикселей — вписываем по ширине, дальше зум пальцами */
+.canvas-stage svg { display: block; width: 100%; height: auto; }
+
+.canvas-page .note-nav { position: relative; }
+.canvas-nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 60%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .canvas-view .empty { color: var(--dim); }
 
 /* Просмотр файла конфигурации — тот же выезжающий экран, что и заметка */

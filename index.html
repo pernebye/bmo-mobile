@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=115">
+<link rel="stylesheet" href="styles.css?v=116">
 </head>
 <body>
 
@@ -110,6 +110,11 @@
     <div class="list" id="config-list"></div>
   </section>
 
+  <section class="screen" data-screen="canvases">
+    <h1 class="screen-title">Схемы</h1>
+    <div class="list" id="canvas-list"></div>
+  </section>
+
   <!-- Заметки -->
   <section class="screen" data-screen="notes">
     <h1 class="screen-title">Заметки</h1>
@@ -126,6 +131,7 @@
   <button class="tab" data-target="tasks"><i data-icon="tasks"></i><span>Задачи</span><i class="tab-badge" id="tab-badge" hidden></i></button>
   <button class="tab" data-target="calendar"><i data-icon="calendar"></i><span>Календарь</span></button>
   <button class="tab" data-target="notes"><i data-icon="edit"></i><span>Заметки</span></button>
+  <button class="tab" data-target="canvases"><i data-icon="flows"></i><span>Схемы</span></button>
 </nav>
 </div><!-- /app-root -->
 
@@ -171,9 +177,9 @@
 <div class="canvas-page" id="canvas-page">
   <header class="note-nav">
     <button class="note-back" id="canvas-back"><i data-icon="chevron-left"></i><span>Назад</span></button>
-    <div class="note-nav-title" id="canvas-title"></div>
+    <div class="note-nav-title canvas-nav-title" id="canvas-title"></div>
   </header>
-  <div class="canvas-view" id="canvas-view"></div>
+  <div class="canvas-view" id="canvas-view"><div class="canvas-stage" id="canvas-stage"></div></div>
 </div>
 
 <div class="doc-page" id="doc-page">
@@ -301,7 +307,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=115"></script>
-<script src="app.js?v=115"></script>
+<script src="icons.js?v=116"></script>
+<script src="app.js?v=116"></script>
 </body>
 </html>

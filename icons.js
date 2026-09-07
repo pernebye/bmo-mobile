@@ -1,6 +1,7 @@
 // Иконки из личной библиотеки пользователя (Реквизиты/ICONS), stroke через currentColor.
 // Файл генерируется скриптом runner-web/gen_icons.py — руками не править.
 const ICONS = {
+  'flows': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><g transform="translate(-300.000 -826.000)"><path d="M320 843C320 840.239 317.761 838 315 838L308 838C305.791 838 304 839.791 304 842M312 842L312 833M318 847V843H322V847H318ZM310 833L310 829L314 829L314 833H310ZM310 847L310 843H314L314 847H310ZM302 847L302 843H306V847H302Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g></svg>',
   'check-circle': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l-4 4-2-2"/><circle cx="12" cy="12" r="9"/></svg>',
   'send': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>',
   'save':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>',
