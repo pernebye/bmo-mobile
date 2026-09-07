@@ -1433,6 +1433,7 @@ body.sheet-open .fab { display: none; }
 .fmt-bar {
   position: absolute;
   left: 10px; right: 10px;
+  touch-action: none;      /* свайп по панели ничего не прокручивает и её не дёргает */
   display: flex;
   align-items: center;
   gap: 6px;
