@@ -1047,12 +1047,16 @@ let peekJustClosed = false;
     const actions = [['launch', 'Открыть Claude', ICONS.claude]];
     if ((project.devCommands || []).length) actions.push(['dev', 'Dev-серверы', ICONS.play]);
     if (project.prodUrl) actions.push(['site', 'Открыть сайт', ICONS.globe]);
+    if (project.repoUrl) actions.push(['repo', 'Репозиторий', ICONS.github]);
+    actions.push(['docs', 'Инструкция и память', ICONS.book]);
     for (const [act, label, icon] of actions) {
       const item = document.createElement('button');
       item.innerHTML = `<span>${label}</span>${icon}`;
       item.addEventListener('click', () => {
         close();
         if (act === 'site') window.open(project.prodUrl, '_blank', 'noopener');
+        else if (act === 'repo') window.open(project.repoUrl, '_blank', 'noopener');
+        else if (act === 'docs') openProjectDocs(project);
         else runProject(project, act);
       });
       menu.appendChild(item);
@@ -1250,18 +1254,101 @@ document.getElementById('project-search').addEventListener('input', (e) => {
   renderProjects();
 });
 
+const SCREEN_TITLES = {
+  projects: 'Проекты', tasks: 'Задачи', calendar: 'Календарь',
+  sessions: 'Сессии', notes: 'Заметки', config: 'Конфиги',
+};
+
+function openScreen(name) {
+  state.screen = name;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.target === name));
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.dataset.screen === name));
+  document.getElementById('screen-title').textContent = SCREEN_TITLES[name];
+  document.getElementById('btn-sessions').hidden = name !== 'projects';
+  document.getElementById('btn-add').hidden = !(name === 'tasks' || name === 'calendar');
+  document.getElementById('notes-bar').hidden = name !== 'notes';
+  if (name !== 'notes') document.body.classList.remove('searching');
+  if (name === 'config') renderConfig();
+  window.scrollTo(0, 0);
+}
+
+document.getElementById('btn-sessions').addEventListener('click', () => openScreen('sessions'));
+
 document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    state.screen = tab.dataset.target;
-    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
-    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.dataset.screen === state.screen));
-    document.getElementById('screen-title').textContent =
-      { projects: 'Проекты', tasks: 'Задачи', calendar: 'Календарь', sessions: 'Сессии', notes: 'Заметки' }[state.screen];
-    document.getElementById('btn-add').hidden = !(state.screen === 'tasks' || state.screen === 'calendar');
-    document.getElementById('notes-bar').hidden = state.screen !== 'notes';
-    if (state.screen !== 'notes') document.body.classList.remove('searching');
-    window.scrollTo(0, 0);
-  });
+  tab.addEventListener('click', () => openScreen(tab.dataset.target));
+});
+
+// --- конфиги и просмотр файлов ---
+
+// инструкция и память конкретного проекта — тем же списком, что и глобальные конфиги
+async function openProjectDocs(project) {
+  openScreen('config');
+  const list = document.getElementById('config-list');
+  list.innerHTML = '<div class="empty">Загружаю…</div>';
+  document.getElementById('screen-title').textContent = project.name;
+  try {
+    const res = await api('/api/docs?scope=project&id=' + encodeURIComponent(project.id));
+    list.innerHTML = docGroups(res.items || [])
+      || '<div class="empty">У проекта нет ни инструкции, ни памяти</div>';
+  } catch {
+    list.innerHTML = '<div class="empty">Компьютер недоступен</div>';
+  }
+}
+
+async function renderConfig() {
+  const list = document.getElementById('config-list');
+  list.innerHTML = '<div class="empty">Загружаю…</div>';
+  let items = [];
+  try {
+    const res = await api('/api/docs?scope=global');
+    items = res.items || [];
+  } catch {
+    list.innerHTML = '<div class="empty">Компьютер недоступен</div>';
+    return;
+  }
+  list.innerHTML = docGroups(items) || '<div class="empty">Ничего не нашлось</div>';
+}
+
+function docGroups(items) {
+  const groups = new Map();
+  for (const item of items) {
+    if (!groups.has(item.group)) groups.set(item.group, []);
+    groups.get(item.group).push(item);
+  }
+  let html = '';
+  for (const [title, rows] of groups) {
+    html += `<div class="group-title">${esc(title)}<span>${rows.length}</span></div><div class="group">`
+      + rows.map(r => `<button class="note-card" data-doc="${esc(r.key)}">
+          <div class="note-card-title">${esc(r.title)}</div>
+        </button>`).join('')
+      + '</div>';
+  }
+  return html;
+}
+
+document.getElementById('config-list').addEventListener('click', (e) => {
+  const item = e.target.closest('[data-doc]');
+  if (item) openDoc(item.dataset.doc);
+});
+
+async function openDoc(key) {
+  const page = document.getElementById('doc-page');
+  document.getElementById('doc-title').textContent = '…';
+  document.getElementById('doc-body').textContent = '';
+  page.classList.add('open');
+  document.getElementById('app-root').classList.add('pushed');
+  try {
+    const res = await api('/api/doc?key=' + encodeURIComponent(key));
+    document.getElementById('doc-title').textContent = res.title || '';
+    document.getElementById('doc-body').textContent = res.text || res.error || '';
+  } catch {
+    document.getElementById('doc-body').textContent = 'Не удалось прочитать — компьютер недоступен';
+  }
+}
+
+document.getElementById('doc-back').addEventListener('click', () => {
+  document.getElementById('doc-page').classList.remove('open');
+  document.getElementById('app-root').classList.remove('pushed');
 });
 
 document.getElementById('btn-add').addEventListener('click', () => {
@@ -2013,12 +2100,28 @@ function continueList() {
     requestAnimationFrame(place);
   });
 
-  // гасим pointerdown, иначе поле теряет фокус и клавиатура закрывается
-  bar.addEventListener('pointerdown', (e) => e.preventDefault());
+  // Раньше здесь гасился pointerdown, чтобы не терять фокус, — но заодно гасился и
+  // жест прокрутки, и панель дёргалась, если палец задевал её при листании. Теперь
+  // запоминаем место курсора и возвращаем его после нажатия.
+  let lastRange = null;
+  document.addEventListener('selectionchange', () => {
+    const sel = document.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    if (body.contains(sel.anchorNode)) lastRange = sel.getRangeAt(0).cloneRange();
+  });
+
+  function restoreCaret() {
+    if (!lastRange) return;
+    body.focus();
+    const sel = document.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(lastRange);
+  }
 
   bar.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-fmt]');
     if (!btn) return;
+    restoreCaret();
     const kind = btn.dataset.fmt;
     if (kind === 'done') { body.blur(); title.blur(); return; }
     if (kind === 'link') { openLink(); return; }
