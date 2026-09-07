@@ -1539,6 +1539,72 @@ const NOTE_HEAD = /^#\s+\S/;
 // крупнее прямо при наборе. В хранилище всё равно уходит обычный текст.
 const NOTE_CHECK = /^- \[( |x)\] /;
 
+// начертания внутри строки; пары символов прячем, показываем эффект
+const INLINE_MARKS = { '**': 'fx-b', '_': 'fx-i', '++': 'fx-u', '~~': 'fx-s', '==': 'fx-h' };
+const INLINE_RE = /(\*\*[^*]+\*\*|\+\+[^+]+\+\+|~~[^~]+~~|==[^=]+==|_[^_]+_)/g;
+
+function hiddenMark(text) {
+  const span = document.createElement('span');
+  span.className = 'md';
+  span.contentEditable = 'false';
+  span.textContent = text;
+  return span;
+}
+
+function inlineNodes(text) {
+  const box = document.createDocumentFragment();
+  let last = 0;
+  for (const m of text.matchAll(INLINE_RE)) {
+    if (m.index > last) box.appendChild(document.createTextNode(text.slice(last, m.index)));
+    const raw = m[0];
+    const mark = raw.slice(0, 2) in INLINE_MARKS ? raw.slice(0, 2) : raw.slice(0, 1);
+    const wrap = document.createElement('span');
+    wrap.className = INLINE_MARKS[mark];
+    wrap.appendChild(hiddenMark(mark));
+    wrap.appendChild(document.createTextNode(raw.slice(mark.length, raw.length - mark.length)));
+    wrap.appendChild(hiddenMark(mark));
+    box.appendChild(wrap);
+    last = m.index + raw.length;
+  }
+  if (last < text.length) box.appendChild(document.createTextNode(text.slice(last)));
+  return box;
+}
+
+// смещение курсора внутри строки, считая скрытые маркеры — так строку можно
+// перерисовать целиком и вернуть курсор на то же место
+function caretOffset(line) {
+  const sel = document.getSelection();
+  if (!sel || !sel.rangeCount || !line.contains(sel.focusNode)) return null;
+  const range = document.createRange();
+  range.selectNodeContents(line);
+  range.setEnd(sel.focusNode, sel.focusOffset);
+  return range.toString().length;
+}
+
+function setCaret(line, from, to) {
+  const walk = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+  const spot = (offset) => {
+    let left = offset;
+    walk.currentNode = line;
+    let node;
+    while ((node = walk.nextNode())) {
+      if (node.parentElement.isContentEditable === false) { left -= node.length; continue; }
+      if (left <= node.length) return [node, Math.max(0, left)];
+      left -= node.length;
+    }
+    return null;
+  };
+  const start = spot(from);
+  const end = to === undefined ? start : spot(to);
+  if (!start || !end) return;
+  const range = document.createRange();
+  range.setStart(start[0], start[1]);
+  range.setEnd(end[0], end[1]);
+  const sel = document.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
 function lineNode(text) {
   const line = document.createElement('div');
   line.className = 'note-line';
@@ -1554,7 +1620,7 @@ function lineNode(text) {
     span.textContent = mark;
     line.appendChild(span);
   }
-  line.appendChild(document.createTextNode(text.slice(mark.length)));
+  line.appendChild(inlineNodes(text.slice(mark.length)));
   return line;
 }
 
@@ -1572,27 +1638,17 @@ function readBody() {
 // переключение класса не трогает выделение, поэтому курсор при наборе не прыгает
 function markHeads() {
   const box = document.getElementById('n-body');
-  for (const line of box.children) {
-    line.classList.add('note-line');
-    const text = line.textContent;
-    // строку с маркером перерисовываем целиком: маркер должен уйти в неизменяемый span
-    const wanted = NOTE_CHECK.test(text) || /^#\s+/.test(text);
-    const has = line.querySelector('.md');
-    if (wanted && !has) {
-      line.replaceWith(lineNode(text));
-      continue;
-    }
-    if (!wanted && has) {
-      line.replaceWith(lineNode(text));
-      continue;
-    }
-    line.classList.toggle('note-h', /^#\s+/.test(text));
-    line.classList.toggle('note-check', NOTE_CHECK.test(text));
-    line.classList.toggle('done', /^- \[x\] /.test(text));
+  const active = currentLine();
+  const offset = active ? caretOffset(active) : null;
+  for (const line of [...box.children]) {
+    const fresh = lineNode(line.textContent);
+    if (fresh.outerHTML === line.outerHTML) continue;
+    const wasActive = line === active;
+    line.replaceWith(fresh);
+    if (wasActive && offset !== null) setCaret(fresh, offset);
   }
 }
 
-// строка, в которой сейчас курсор
 function currentLine() {
   const sel = document.getSelection();
   if (!sel || !sel.anchorNode) return null;
@@ -1626,6 +1682,36 @@ function toggleMark(kind) {
   sel.addRange(range);
   noteEditor.schedule();
   reflectFmt();
+}
+
+// обернуть выделение маркерами или снять их
+function applyInline(kind) {
+  const marks = { b: '**', i: '_', u: '++', s: '~~', h: '==' };
+  const mark = marks[kind];
+  const line = currentLine();
+  const sel = document.getSelection();
+  if (!line || !sel.rangeCount) return;
+  const raw = line.textContent;
+  const range = sel.getRangeAt(0);
+  const before = document.createRange();
+  before.selectNodeContents(line);
+  before.setEnd(range.startContainer, range.startOffset);
+  const from = before.toString().length;
+  const to = from + range.toString().length;
+
+  let next;
+  let caret;
+  if (raw.slice(from - mark.length, from) === mark && raw.slice(to, to + mark.length) === mark) {
+    next = raw.slice(0, from - mark.length) + raw.slice(from, to) + raw.slice(to + mark.length);
+    caret = [from - mark.length, to - mark.length];
+  } else {
+    next = raw.slice(0, from) + mark + raw.slice(from, to) + mark + raw.slice(to);
+    caret = [from + mark.length, to + mark.length];
+  }
+  const fresh = lineNode(next);
+  line.replaceWith(fresh);
+  setCaret(fresh, caret[0], caret[1]);
+  noteEditor.schedule();
 }
 
 function reflectFmt() {
@@ -2123,6 +2209,7 @@ function continueList() {
     if (!btn) return;
     restoreCaret();
     const kind = btn.dataset.fmt;
+    if (btn.dataset.fx) { applyInline(btn.dataset.fx); return; }
     if (kind === 'done') { body.blur(); title.blur(); return; }
     if (kind === 'link') { openLink(); return; }
     toggleMark(kind);

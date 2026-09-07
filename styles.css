@@ -1433,7 +1433,9 @@ body.sheet-open .fab { display: none; }
 .fmt-bar {
   position: absolute;
   left: 10px; right: 10px;
-  touch-action: none;      /* свайп по панели ничего не прокручивает и её не дёргает */
+  overflow-x: auto;
+  scrollbar-width: none;
+  touch-action: pan-x;     /* вертикальный свайп панель игнорирует, кнопки листаются вбок */
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1444,8 +1446,10 @@ body.sheet-open .fab { display: none; }
   z-index: 44;
 }
 
+.fmt-bar::-webkit-scrollbar { display: none; }
+
 .fmt-btn {
-  flex: 1;
+  flex: 0 0 44px;
   height: 38px;
   display: flex;
   align-items: center;
@@ -1462,7 +1466,18 @@ body.sheet-open .fab { display: none; }
 .fmt-btn [data-icon] { font-size: 19px; }
 .fmt-btn:active { background: var(--hover); }
 .fmt-btn.on { background: var(--accent-soft); color: var(--accent); }
-.fmt-done { flex: 0 0 46px; color: var(--accent); }
+.fmt-done { color: var(--accent); }
+.fmt-btn.fx { font-size: 17px; }
+.fx-italic { font-style: italic; font-family: Georgia, serif; }
+.fx-under { text-decoration: underline; }
+.fx-strike { text-decoration: line-through; }
+
+/* сами начертания в тексте */
+.fx-b { font-weight: 700; }
+.fx-i { font-style: italic; }
+.fx-u { text-decoration: underline; }
+.fx-s { text-decoration: line-through; }
+.fx-h { background: var(--accent-soft); border-radius: 3px; }
 
 /* Лист «Ссылка» */
 .link-sheet {
