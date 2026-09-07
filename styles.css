@@ -1506,16 +1506,31 @@ body.sheet-open .fab { display: none; }
 .hl-palette [data-tint="3"] { background: rgba(130, 190, 255, 0.9); }
 .hl-palette [data-tint="4"] { background: rgba(255, 150, 190, 0.9); }
 
-/* Лист «Ссылка» */
+/* Ссылка — нижняя шторка. Позицию задаёт JS: при открытой клавиатуре
+   position: fixed на iOS не держится, см. запись 4 в справочнике заметок. */
 .link-sheet {
-  position: fixed;
-  inset: 0;
-  z-index: 45;
-  padding: calc(var(--safe-top) + 8px) 16px 0;
-  background: var(--bg);
+  position: absolute;
+  left: 0; right: 0;
+  z-index: 46;
+  padding: 8px 16px 18px;
+  border-radius: 18px 18px 0 0;
+  background: var(--surface);
+  box-shadow: 0 -12px 34px var(--shadow);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+  transform: translateY(110%);
+  transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
+}
+
+.link-sheet.open { transform: translateY(0); pointer-events: auto; }
+
+.link-grip {
+  width: 36px; height: 4px;
+  margin: 0 auto 2px;
+  border-radius: 2px;
+  background: var(--line-strong);
 }
 
 .link-head { display: flex; align-items: center; gap: 8px; }

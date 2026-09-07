@@ -2185,6 +2185,13 @@ function continueList() {
     // Панель — ребёнок body, поэтому считаем в координатах документа: pageTop уже
     // учитывает и прокрутку страницы, и сдвиг видимой области. Так же стоит поиск.
     bar.style.top = Math.round(viewport.pageTop + viewport.height - bar.offsetHeight - 2) + 'px';
+    placeSheet();
+  }
+
+  // шторка ссылки садится на нижний край видимой области, как и панель
+  function placeSheet() {
+    if (!viewport || !sheet.classList.contains('open')) return;
+    sheet.style.top = Math.round(viewport.pageTop + viewport.height - sheet.offsetHeight) + 'px';
   }
 
   function show() {
@@ -2210,6 +2217,7 @@ function continueList() {
   if (viewport) {
     viewport.addEventListener('resize', place);
     viewport.addEventListener('scroll', place);
+    viewport.addEventListener('resize', placeSheet);
   }
   // Safari прокручивает документ, чтобы показать курсор — тем сильнее, чем ниже строка,
   // и слой заметки уезжает вместе с ним. Пересчитываем положение после каждого сдвига.
@@ -2294,16 +2302,25 @@ function continueList() {
     savedRange = sel && sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
     document.getElementById('link-name').value = savedRange ? savedRange.toString() : '';
     document.getElementById('link-url').value = '';
-    sheet.hidden = false;
+    bar.hidden = true;                       // панель и шторка не должны налезать друг на друга
+    sheet.classList.add('open');
+    placeSheet();
     setTimeout(() => document.getElementById('link-url').focus(), 80);
   }
 
-  document.getElementById('link-cancel').addEventListener('click', () => { sheet.hidden = true; });
+  function closeSheet() {
+    sheet.classList.remove('open');
+    sheet.style.top = '';
+    bar.hidden = false;
+    place();
+  }
+
+  document.getElementById('link-cancel').addEventListener('click', closeSheet);
 
   document.getElementById('link-apply').addEventListener('click', () => {
     const url = document.getElementById('link-url').value.trim();
     const name = document.getElementById('link-name').value.trim() || url;
-    sheet.hidden = true;
+    closeSheet();
     if (!url || !savedRange) return;
     const sel = document.getSelection();
     sel.removeAllRanges();
