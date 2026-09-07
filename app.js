@@ -1682,14 +1682,33 @@ function applyInline(kind, tint) {
   const cls = 'fx-' + kind;
   const range = sel.getRangeAt(0);
 
-  const wrapper = sel.anchorNode.parentElement.closest('.' + cls);
+  // выделение после оборачивания указывает на сам элемент, а не на текст внутри —
+  // ищем обёртку от узла, а не от его родителя, иначе повтор не снимал формат
+  const from = sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode;
+  const wrapper = from.closest('.' + cls);
   if (wrapper && range.collapsed) {                 // курсор внутри — снимаем формат дальше
-    wrapper.replaceWith(...wrapper.childNodes);
+    const kept = [...wrapper.childNodes];
+    wrapper.replaceWith(...kept);
+    if (kept.length) {
+      const back = document.createRange();
+      back.setStartBefore(kept[0]);
+      back.setEndAfter(kept[kept.length - 1]);
+      sel.removeAllRanges();
+      sel.addRange(back);
+    }
     noteEditor.schedule();
     return reflectFmt();
   }
   if (wrapper && wrapper.textContent === range.toString()) {
-    wrapper.replaceWith(...wrapper.childNodes);
+    const kept = [...wrapper.childNodes];
+    wrapper.replaceWith(...kept);
+    if (kept.length) {
+      const back = document.createRange();
+      back.setStartBefore(kept[0]);
+      back.setEndAfter(kept[kept.length - 1]);
+      sel.removeAllRanges();
+      sel.addRange(back);
+    }
     noteEditor.schedule();
     return reflectFmt();
   }
