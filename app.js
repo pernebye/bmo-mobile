@@ -1264,7 +1264,9 @@ function openScreen(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.target === name));
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.dataset.screen === name));
   document.getElementById('screen-title').textContent = SCREEN_TITLES[name];
-  document.getElementById('btn-sessions').hidden = name !== 'projects';
+  for (const id of ['btn-sessions', 'btn-config']) {
+    document.getElementById(id).hidden = name !== 'projects';
+  }
   document.getElementById('btn-add').hidden = !(name === 'tasks' || name === 'calendar');
   document.getElementById('notes-bar').hidden = name !== 'notes';
   if (name !== 'notes') document.body.classList.remove('searching');
@@ -1273,6 +1275,7 @@ function openScreen(name) {
 }
 
 document.getElementById('btn-sessions').addEventListener('click', () => openScreen('sessions'));
+document.getElementById('btn-config').addEventListener('click', () => openScreen('config'));
 
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => openScreen(tab.dataset.target));
@@ -2205,7 +2208,8 @@ function continueList() {
   }
 
   bar.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-fmt]');
+    // у кнопок начертания атрибут data-fx, у остальных data-fmt — ищем оба
+    const btn = e.target.closest('[data-fmt], [data-fx]');
     if (!btn) return;
     restoreCaret();
     const kind = btn.dataset.fmt;

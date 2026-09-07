@@ -102,6 +102,8 @@ body {
 
 .topbar-btn:active { background: var(--hover); }
 .topbar-btn [data-icon] { font-size: 18px; }
+.topbar { gap: 8px; }
+.topbar-title { flex: 1; }
 .topbar-btn.spinning svg { animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -1468,6 +1470,7 @@ body.sheet-open .fab { display: none; }
 .fmt-btn.on { background: var(--accent-soft); color: var(--accent); }
 .fmt-done { color: var(--accent); }
 .fmt-btn.fx { font-size: 17px; }
+.fmt-head { font-size: 17px; font-weight: 700; }
 .fx-italic { font-style: italic; font-family: Georgia, serif; }
 .fx-under { text-decoration: underline; }
 .fx-strike { text-decoration: line-through; }

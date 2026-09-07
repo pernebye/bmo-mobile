@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-256.png">
 <link rel="icon" href="icon-256.png">
-<link rel="stylesheet" href="styles.css?v=106">
+<link rel="stylesheet" href="styles.css?v=107">
 </head>
 <body>
 
@@ -54,6 +54,7 @@
 <header class="topbar">
   <div class="topbar-title" id="screen-title">Проекты</div>
   <span class="offline-pill" id="offline-pill" hidden>только просмотр</span>
+  <button class="topbar-btn" id="btn-config" title="Конфиги"><i data-icon="book"></i></button>
   <button class="topbar-btn" id="btn-sessions" title="Недавние сессии"><i data-icon="terminal"></i></button>
 </header>
 <div class="offline-bar" id="offline-bar" hidden>Нет связи с компьютером — показаны последние данные, изменения недоступны</div>
@@ -125,7 +126,6 @@
   <button class="tab" data-target="tasks"><i data-icon="tasks"></i><span>Задачи</span><i class="tab-badge" id="tab-badge" hidden></i></button>
   <button class="tab" data-target="calendar"><i data-icon="calendar"></i><span>Календарь</span></button>
   <button class="tab" data-target="notes"><i data-icon="edit"></i><span>Заметки</span></button>
-  <button class="tab" data-target="config"><i data-icon="book"></i><span>Конфиги</span></button>
 </nav>
 </div><!-- /app-root -->
 
@@ -155,7 +155,7 @@
 </div>
 
 <div class="fmt-bar" id="fmt-bar" hidden>
-  <button class="fmt-btn" data-fmt="head" title="Заголовок">Aa</button>
+  <button class="fmt-btn fmt-head" data-fmt="head" title="Заголовок раздела">H</button>
   <button class="fmt-btn fx" data-fx="b" title="Жирный">B</button>
   <button class="fmt-btn fx fx-italic" data-fx="i" title="Курсив">I</button>
   <button class="fmt-btn fx fx-under" data-fx="u" title="Подчёркнутый">U</button>
@@ -277,7 +277,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="icons.js?v=106"></script>
-<script src="app.js?v=106"></script>
+<script src="icons.js?v=107"></script>
+<script src="app.js?v=107"></script>
 </body>
 </html>
