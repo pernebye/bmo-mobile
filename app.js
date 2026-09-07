@@ -1536,76 +1536,47 @@ function fitTitle() {
 }
 
 // строка, начинающаяся с «# », — заголовок раздела внутри заметки
+// строка, начинающаяся с «# », — заголовок раздела
 const NOTE_HEAD = /^#\s+\S/;
-
-// Редактор — не textarea: каждая строка отдельным блоком, чтобы заголовок было видно
-// крупнее прямо при наборе. В хранилище всё равно уходит обычный текст.
 const NOTE_CHECK = /^- \[( |x)\] /;
 
-// начертания внутри строки; пары символов прячем, показываем эффект
-const INLINE_MARKS = { '**': 'fx-b', '_': 'fx-i', '++': 'fx-u', '~~': 'fx-s', '==': 'fx-h' };
+// Начертания. В редакторе живут только элементы с этими классами — символы разметки
+// в текст не попадают, поэтому их нечем обнажить при правке. Обратно в текст они
+// собираются в readBody().
+const FX = { 'fx-b': '**', 'fx-i': '_', 'fx-u': '++', 'fx-s': '~~', 'fx-h': '==' };
+const HL_COLORS = ['fx-h1', 'fx-h2', 'fx-h3', 'fx-h4'];
 const INLINE_RE = /(\*\*[^*]+\*\*|\+\+[^+]+\+\+|~~[^~]+~~|==[^=]+==|_[^_]+_)/g;
+const ZW = '\u200B';
 
-function hiddenMark(text) {
+function fxSpan(cls, text) {
   const span = document.createElement('span');
-  span.className = 'md';
-  span.contentEditable = 'false';
+  span.className = cls;
   span.textContent = text;
   return span;
 }
 
+// текст -> узлы: символы разметки съедаются, остаются элементы
 function inlineNodes(text) {
   const box = document.createDocumentFragment();
   let last = 0;
   for (const m of text.matchAll(INLINE_RE)) {
     if (m.index > last) box.appendChild(document.createTextNode(text.slice(last, m.index)));
     const raw = m[0];
-    const mark = raw.slice(0, 2) in INLINE_MARKS ? raw.slice(0, 2) : raw.slice(0, 1);
-    const wrap = document.createElement('span');
-    wrap.className = INLINE_MARKS[mark];
-    wrap.appendChild(hiddenMark(mark));
-    wrap.appendChild(document.createTextNode(raw.slice(mark.length, raw.length - mark.length)));
-    wrap.appendChild(hiddenMark(mark));
-    box.appendChild(wrap);
+    const two = raw.slice(0, 2);
+    const mark = Object.values(FX).includes(two) ? two : raw.slice(0, 1);
+    const cls = Object.keys(FX).find(k => FX[k] === mark);
+    let inner = raw.slice(mark.length, raw.length - mark.length);
+    let full = cls;
+    if (cls === 'fx-h') {
+      const tint = inner.match(/^([1-4])\|/);
+      if (tint) { full += ' ' + HL_COLORS[Number(tint[1]) - 1]; inner = inner.slice(2); }
+      else full += ' ' + HL_COLORS[0];
+    }
+    box.appendChild(fxSpan(full, inner));
     last = m.index + raw.length;
   }
   if (last < text.length) box.appendChild(document.createTextNode(text.slice(last)));
   return box;
-}
-
-// смещение курсора внутри строки, считая скрытые маркеры — так строку можно
-// перерисовать целиком и вернуть курсор на то же место
-function caretOffset(line) {
-  const sel = document.getSelection();
-  if (!sel || !sel.rangeCount || !line.contains(sel.focusNode)) return null;
-  const range = document.createRange();
-  range.selectNodeContents(line);
-  range.setEnd(sel.focusNode, sel.focusOffset);
-  return range.toString().length;
-}
-
-function setCaret(line, from, to) {
-  const walk = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
-  const spot = (offset) => {
-    let left = offset;
-    walk.currentNode = line;
-    let node;
-    while ((node = walk.nextNode())) {
-      if (node.parentElement.isContentEditable === false) { left -= node.length; continue; }
-      if (left <= node.length) return [node, Math.max(0, left)];
-      left -= node.length;
-    }
-    return null;
-  };
-  const start = spot(from);
-  const end = to === undefined ? start : spot(to);
-  if (!start || !end) return;
-  const range = document.createRange();
-  range.setStart(start[0], start[1]);
-  range.setEnd(end[0], end[1]);
-  const sel = document.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
 }
 
 function lineNode(text) {
@@ -1613,18 +1584,38 @@ function lineNode(text) {
   line.className = 'note-line';
   const check = text.match(NOTE_CHECK);
   const head = text.match(/^#\s+/);
-  const mark = check ? check[0] : (head ? head[0] : '');
-  if (check) line.classList.add('note-check', ...(check[1] === 'x' ? ['done'] : []));
-  else if (head) line.classList.add('note-h');
-  if (mark) {
-    const span = document.createElement('span');
-    span.className = 'md';
-    span.contentEditable = 'false';
-    span.textContent = mark;
-    line.appendChild(span);
+  if (check) {
+    line.classList.add('note-check');
+    if (check[1] === 'x') line.classList.add('done');
+  } else if (head) {
+    line.classList.add('note-h');
   }
-  line.appendChild(inlineNodes(text.slice(mark.length)));
+  line.appendChild(inlineNodes(text.slice(check ? check[0].length : (head ? head[0].length : 0))));
   return line;
+}
+
+// узлы -> текст: собираем маркеры обратно
+function lineText(line) {
+  let out = '';
+  for (const node of line.childNodes) {
+    if (node.nodeType === 3) { out += node.data; continue; }
+    const cls = [...(node.classList || [])].find(c => FX[c]);
+    if (!cls) { out += node.textContent; continue; }
+    let inner = node.textContent.replace(new RegExp(ZW, 'g'), '');
+    if (!inner) continue;                 // опустевшую обёртку в текст не пишем
+    if (cls === 'fx-h') {
+      const tint = HL_COLORS.indexOf([...node.classList].find(c => c.startsWith('fx-h')
+        && c !== 'fx-h') || 'fx-h1');
+      if (tint > 0) inner = (tint + 1) + '|' + inner;
+    }
+    out += FX[cls] + inner + FX[cls];
+  }
+  out = out.replace(new RegExp(ZW, 'g'), '');
+  if (line.classList.contains('note-h')) return '# ' + out;
+  if (line.classList.contains('note-check')) {
+    return (line.classList.contains('done') ? '- [x] ' : '- [ ] ') + out;
+  }
+  return out;
 }
 
 function fillBody(text) {
@@ -1635,93 +1626,129 @@ function fillBody(text) {
 }
 
 function readBody() {
-  return [...document.getElementById('n-body').children].map(n => n.textContent).join('\n');
+  return [...document.getElementById('n-body').children].map(lineText).join('\n');
 }
 
-// переключение класса не трогает выделение, поэтому курсор при наборе не прыгает
-function markHeads() {
+// Браузер при вводе иногда вкладывает div в div или теряет класс строки — приводим в порядок.
+// Текст при этом не трогаем, поэтому курсор не прыгает.
+function normalizeBody() {
   const box = document.getElementById('n-body');
-  const active = currentLine();
-  const offset = active ? caretOffset(active) : null;
-  for (const line of [...box.children]) {
-    const fresh = lineNode(line.textContent);
-    if (fresh.outerHTML === line.outerHTML) continue;
-    const wasActive = line === active;
-    line.replaceWith(fresh);
-    if (wasActive && offset !== null) setCaret(fresh, offset);
+  for (const node of [...box.childNodes]) {
+    if (node.nodeType === 3) {
+      const line = document.createElement('div');
+      line.className = 'note-line';
+      node.replaceWith(line);
+      line.appendChild(node);
+      continue;
+    }
+    node.classList.add('note-line');
+    for (const inner of [...node.children]) {
+      if (inner.tagName === 'DIV') inner.replaceWith(...inner.childNodes);
+    }
   }
+  if (!box.firstChild) box.appendChild(lineNode(''));
 }
 
 function currentLine() {
   const sel = document.getSelection();
   if (!sel || !sel.anchorNode) return null;
   let node = sel.anchorNode;
-  while (node && node.parentElement && !node.parentElement.id) {
-    if (node.parentElement.id === 'n-body') return node;
-    node = node.parentElement;
-  }
-  return node && node.parentElement && node.parentElement.id === 'n-body' ? node : null;
+  const box = document.getElementById('n-body');
+  while (node && node.parentElement && node.parentElement !== box) node = node.parentElement;
+  return node && node.parentElement === box ? node : null;
 }
 
-// переключение маркера в начале строки
+// заголовок и пункт — это классы строки, текст не трогаем вовсе
 function toggleMark(kind) {
   const line = currentLine();
   if (!line) return;
-  const text = line.textContent;
-  const head = /^#\s+/.test(text);
-  const check = NOTE_CHECK.test(text);
-  let plain = text.replace(/^#\s+/, '').replace(NOTE_CHECK, '');
-  let next = plain;
-  if (kind === 'head' && !head) next = '# ' + plain;
-  if (kind === 'check' && !check) next = '- [ ] ' + plain;
-  const fresh = lineNode(next);
-  line.replaceWith(fresh);
-  // курсор в конец строки
-  const sel = document.getSelection();
-  const range = document.createRange();
-  range.selectNodeContents(fresh);
-  range.collapse(false);
-  sel.removeAllRanges();
-  sel.addRange(range);
+  if (kind === 'head') {
+    line.classList.remove('note-check', 'done');
+    line.classList.toggle('note-h');
+  } else {
+    line.classList.remove('note-h');
+    if (line.classList.contains('note-check')) line.classList.remove('note-check', 'done');
+    else line.classList.add('note-check');
+  }
   noteEditor.schedule();
   reflectFmt();
 }
 
-// обернуть выделение маркерами или снять их
-function applyInline(kind) {
-  const marks = { b: '**', i: '_', u: '++', s: '~~', h: '==' };
-  const mark = marks[kind];
-  const line = currentLine();
+// начертание: оборачиваем выделение или снимаем обёртку
+function applyInline(kind, tint) {
   const sel = document.getSelection();
+  const line = currentLine();
   if (!line || !sel.rangeCount) return;
-  const raw = line.textContent;
+  const cls = 'fx-' + kind;
   const range = sel.getRangeAt(0);
-  const before = document.createRange();
-  before.selectNodeContents(line);
-  before.setEnd(range.startContainer, range.startOffset);
-  const from = before.toString().length;
-  const to = from + range.toString().length;
 
-  let next;
-  let caret;
-  if (raw.slice(from - mark.length, from) === mark && raw.slice(to, to + mark.length) === mark) {
-    next = raw.slice(0, from - mark.length) + raw.slice(from, to) + raw.slice(to + mark.length);
-    caret = [from - mark.length, to - mark.length];
-  } else {
-    next = raw.slice(0, from) + mark + raw.slice(from, to) + mark + raw.slice(to);
-    caret = [from + mark.length, to + mark.length];
+  const wrapper = sel.anchorNode.parentElement.closest('.' + cls);
+  if (wrapper && range.collapsed) {                 // курсор внутри — снимаем формат дальше
+    wrapper.replaceWith(...wrapper.childNodes);
+    noteEditor.schedule();
+    return reflectFmt();
   }
-  const fresh = lineNode(next);
-  line.replaceWith(fresh);
-  setCaret(fresh, caret[0], caret[1]);
+  if (wrapper && wrapper.textContent === range.toString()) {
+    wrapper.replaceWith(...wrapper.childNodes);
+    noteEditor.schedule();
+    return reflectFmt();
+  }
+
+  const span = fxSpan(kind === 'h' ? cls + ' ' + HL_COLORS[(tint || 1) - 1] : cls, '');
+  if (range.collapsed) {
+    span.textContent = ZW;                          // пустая обёртка, чтобы печатать внутри
+    range.insertNode(span);
+    const caret = document.createRange();
+    caret.setStart(span.firstChild, 1);
+    caret.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(caret);
+  } else {
+    span.textContent = range.toString();
+    range.deleteContents();
+    range.insertNode(span);
+    sel.removeAllRanges();
+    const after = document.createRange();
+    after.selectNodeContents(span);
+    sel.addRange(after);
+  }
+  noteEditor.schedule();
+  reflectFmt();
+}
+
+// Отмена: держим короткую историю текста заметки. Родная отмена браузера тут не годится —
+// строки мы иногда пересобираем сами, и её история рвётся.
+const undoStack = [];
+let undoLast = '';
+
+function pushUndo() {
+  const now = readBody();
+  if (now === undoLast) return;
+  undoStack.push(undoLast);
+  if (undoStack.length > 40) undoStack.shift();
+  undoLast = now;
+}
+
+function undoBody() {
+  if (!undoStack.length) return;
+  const prev = undoStack.pop();
+  fillBody(prev);
+  undoLast = prev;
   noteEditor.schedule();
 }
 
 function reflectFmt() {
   const line = currentLine();
-  const text = line ? line.textContent : '';
-  document.querySelector('[data-fmt=\"head\"]').classList.toggle('on', /^#\s+/.test(text));
-  document.querySelector('[data-fmt=\"check\"]').classList.toggle('on', NOTE_CHECK.test(text));
+  const sel = document.getSelection();
+  const inside = (cls) => sel && sel.anchorNode
+    && !!(sel.anchorNode.parentElement || {}).closest?.('.' + cls);
+  document.querySelector('[data-fmt="head"]').classList.toggle('on',
+    !!line && line.classList.contains('note-h'));
+  document.querySelector('[data-fmt="check"]').classList.toggle('on',
+    !!line && line.classList.contains('note-check'));
+  for (const btn of document.querySelectorAll('[data-fx]')) {
+    btn.classList.toggle('on', inside('fx-' + btn.dataset.fx));
+  }
 }
 
 const noteEditor = {
@@ -2115,25 +2142,24 @@ document.getElementById('n-title').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); document.getElementById('n-body').focus(); }
 });
 document.getElementById('n-body').addEventListener('input', () => {
-  markHeads();
+  pushUndo();
+  normalizeBody();
   continueList();
   noteEditor.schedule();
 });
 
 // Enter в списке продолжает список: новая пустая строка получает тот же маркер
+// Enter в списке продолжает список, а на пустом пункте — заканчивает его
 function continueList() {
   const line = currentLine();
-  if (!line || line.textContent.trim() || !line.previousElementSibling) return;
+  if (!line || line.textContent.trim()) return;
   const prev = line.previousElementSibling;
-  if (!prev.classList.contains('note-check') || prev.textContent.length <= 6) return;
-  const fresh = lineNode('- [ ] ');
-  line.replaceWith(fresh);
-  const sel = document.getSelection();
-  const range = document.createRange();
-  range.selectNodeContents(fresh);
-  range.collapse(false);
-  sel.removeAllRanges();
-  sel.addRange(range);
+  if (prev && prev.classList.contains('note-check') && prev.textContent.trim()) {
+    line.classList.add('note-check');
+    line.classList.remove('done');
+  } else if (line.classList.contains('note-check')) {
+    line.classList.remove('note-check', 'done');
+  }
 }
 
 // Панель форматирования над клавиатурой и лист «Ссылка».
@@ -2213,22 +2239,48 @@ function continueList() {
     if (!btn) return;
     restoreCaret();
     const kind = btn.dataset.fmt;
-    if (btn.dataset.fx) { applyInline(btn.dataset.fx); return; }
+    if (btn.dataset.fx === 'h') { openPalette(btn); return; }
+    if (btn.dataset.fx) { pushUndo(); applyInline(btn.dataset.fx); return; }
+    if (kind === 'undo') { undoBody(); return; }
     if (kind === 'done') { body.blur(); title.blur(); return; }
     if (kind === 'link') { openLink(); return; }
     toggleMark(kind);
   });
 
-  // тап по кружку отмечает пункт
+  // выделение: сначала выбираем цвет
+  const palette = document.getElementById('hl-palette');
+
+  function openPalette(btn) {
+    const rect = btn.getBoundingClientRect();
+    palette.hidden = false;
+    palette.style.top = (window.scrollY + rect.top - palette.offsetHeight - 8) + 'px';
+    palette.style.left = Math.max(10, Math.min(window.scrollX + rect.left - 60,
+      window.innerWidth - palette.offsetWidth - 10)) + 'px';
+  }
+
+  palette.addEventListener('pointerdown', (e) => e.preventDefault());
+  palette.addEventListener('click', (e) => {
+    const tint = e.target.closest('[data-tint]');
+    if (!tint) return;
+    palette.hidden = true;
+    restoreCaret();
+    pushUndo();
+    applyInline('h', Number(tint.dataset.tint));
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!palette.hidden && !e.target.closest('.hl-palette') && !e.target.closest('[data-fx="h"]')) {
+      palette.hidden = true;
+    }
+  });
+
+  // тап по кружку пункта — он нарисован стилями, поэтому ловим по координате
   body.addEventListener('click', (e) => {
-    const mark = e.target.closest('.md');
-    if (!mark) return;
-    const line = mark.parentElement;
-    if (!line.classList.contains('note-check')) return;
-    const text = line.textContent;
-    line.replaceWith(lineNode(text.startsWith('- [x] ')
-      ? text.replace('- [x] ', '- [ ] ')
-      : text.replace('- [ ] ', '- [x] ')));
+    const line = e.target.closest('.note-check');
+    if (!line) return;
+    if (e.clientX - line.getBoundingClientRect().left > 24) return;
+    pushUndo();
+    line.classList.toggle('done');
     noteEditor.schedule();
   });
 
@@ -2254,7 +2306,6 @@ function continueList() {
     savedRange.deleteContents();
     savedRange.insertNode(document.createTextNode(`[${name}](${url})`));
     sel.collapseToEnd();
-    markHeads();
     noteEditor.schedule();
   });
 })();

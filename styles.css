@@ -1401,26 +1401,23 @@ body.sheet-open .fab { display: none; }
 
 /* Маркеры разметки живут в тексте, но не показываются: заголовок просто крупный,
    пункт списка — кружок. Span не редактируется, поэтому курсор в него не заходит. */
-.md { display: none; }
-
 .note-line.note-check { padding-left: 26px; position: relative; }
 
-.note-line.note-check .md {
-  display: block;
+.note-line.note-check::before {
+  content: '';
   position: absolute;
   left: 0; top: 3px;
   width: 17px; height: 17px;
   border: 1.6px solid var(--line-strong);
   border-radius: 50%;
-  font-size: 0;
 }
 
-.note-line.note-check.done .md { background: var(--accent); border-color: var(--accent); }
+.note-line.note-check.done::before { background: var(--accent); border-color: var(--accent); }
 
-.note-line.note-check.done .md::after {
+.note-line.note-check.done::after {
   content: '';
   position: absolute;
-  left: 5px; top: 1px;
+  left: 5px; top: 4px;
   width: 4px; height: 9px;
   border: solid var(--on-accent);
   border-width: 0 2px 2px 0;
@@ -1480,7 +1477,34 @@ body.sheet-open .fab { display: none; }
 .fx-i { font-style: italic; }
 .fx-u { text-decoration: underline; }
 .fx-s { text-decoration: line-through; }
-.fx-h { background: var(--accent-soft); border-radius: 3px; }
+.fx-h { border-radius: 3px; padding: 0 1px; }
+.fx-h1 { background: rgba(255, 214, 92, 0.42); }
+.fx-h2 { background: rgba(120, 220, 160, 0.38); }
+.fx-h3 { background: rgba(130, 190, 255, 0.38); }
+.fx-h4 { background: rgba(255, 150, 190, 0.36); }
+
+/* палитра выделения */
+.hl-palette {
+  position: absolute;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 16px;
+  background: var(--elevated);
+  box-shadow: 0 10px 26px var(--shadow);
+  z-index: 45;
+}
+
+.hl-palette button {
+  width: 30px; height: 30px;
+  border: none;
+  border-radius: 50%;
+}
+
+.hl-palette [data-tint="1"] { background: rgba(255, 214, 92, 0.9); }
+.hl-palette [data-tint="2"] { background: rgba(120, 220, 160, 0.9); }
+.hl-palette [data-tint="3"] { background: rgba(130, 190, 255, 0.9); }
+.hl-palette [data-tint="4"] { background: rgba(255, 150, 190, 0.9); }
 
 /* Лист «Ссылка» */
 .link-sheet {
