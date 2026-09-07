@@ -1719,21 +1719,26 @@ function applyInline(kind, tint) {
 // Отмена: держим короткую историю текста заметки. Родная отмена браузера тут не годится —
 // строки мы иногда пересобираем сами, и её история рвётся.
 const undoStack = [];
+const redoStack = [];
 let undoLast = '';
 
 function pushUndo() {
   const now = readBody();
   if (now === undoLast) return;
   undoStack.push(undoLast);
-  if (undoStack.length > 40) undoStack.shift();
+  if (undoStack.length > 60) undoStack.shift();
+  redoStack.length = 0;              // новая правка обрывает ветку «вперёд»
   undoLast = now;
 }
 
-function undoBody() {
-  if (!undoStack.length) return;
-  const prev = undoStack.pop();
-  fillBody(prev);
-  undoLast = prev;
+function stepHistory(back) {
+  const from = back ? undoStack : redoStack;
+  const to = back ? redoStack : undoStack;
+  if (!from.length) return;
+  to.push(readBody());
+  const text = from.pop();
+  fillBody(text);
+  undoLast = text;
   noteEditor.schedule();
 }
 
@@ -2241,7 +2246,7 @@ function continueList() {
     const kind = btn.dataset.fmt;
     if (btn.dataset.fx === 'h') { openPalette(btn); return; }
     if (btn.dataset.fx) { pushUndo(); applyInline(btn.dataset.fx); return; }
-    if (kind === 'undo') { undoBody(); return; }
+    if (kind === 'undo' || kind === 'redo') { stepHistory(kind === 'undo'); return; }
     if (kind === 'done') { body.blur(); title.blur(); return; }
     if (kind === 'link') { openLink(); return; }
     toggleMark(kind);
